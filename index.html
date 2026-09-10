@@ -55,6 +55,87 @@
 
 
         /* =====================================
+           НАЧАЛЬНЫЙ ЭКРАН ВЫБОРА АЭРОПОРТА
+           ===================================== */
+
+        .app.initial {
+            display: block;
+            position: relative;
+            background: #1e3344;
+        }
+
+        .app.initial .sidebar {
+            width: 100%;
+            min-width: 0;
+            height: 100vh;
+            border-right: 0;
+            background: #1e3344;
+            display: block;
+        }
+
+        .app.initial .sidebar-header,
+        .app.initial #pageBlock,
+        .app.initial .viewer {
+            display: none !important;
+        }
+
+        .app.initial #uploadBlock {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: min(520px, calc(100% - 40px));
+            padding: 0;
+            background: transparent;
+            z-index: 10;
+        }
+
+        .app.initial .airport-label {
+            margin-bottom: 8px;
+            color: #d7e0e5;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .app.initial .airport-search-box {
+            width: 100%;
+        }
+
+        .app.initial #airportSuggestions {
+            margin-top: 6px;
+            max-height: 360px;
+            overflow-y: auto;
+            box-shadow: 0 5px 18px rgba(0,0,0,0.35);
+        }
+
+        .app.initial .airport-result {
+            min-height: 48px;
+            padding: 0 16px;
+            border-bottom: 1px solid #ddd;
+            justify-content: flex-start;
+        }
+
+        .app.initial .airport-result:last-child {
+            border-bottom: 0;
+        }
+
+        .app.initial .airport-result-icon,
+        .app.initial .airport-result-name,
+        .app.initial .airport-enter-button {
+            display: none;
+        }
+
+        .app.initial .airport-result-main {
+            display: block;
+        }
+
+        .app.initial .airport-result-code {
+            font-size: 17px;
+            color: #111;
+        }
+
+
+        /* =====================================
            БОКОВАЯ ПАНЕЛЬ
            ===================================== */
 
@@ -114,6 +195,69 @@
         }
 
 
+        .airport-label {
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #bfcbd2;
+        }
+
+        #airportInput {
+            width: 100%;
+            height: 34px;
+            padding: 0 10px;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #f0f0f0;
+            background: #172936;
+            border: 1px solid #536b7a;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        #airportInput::placeholder {
+            color: #718692;
+            font-weight: normal;
+            letter-spacing: 0;
+        }
+
+        #airportInput:focus {
+            border-color: #0878b9;
+            background: #233d4e;
+        }
+
+        #chartSelect {
+            width: 100%;
+            height: 34px;
+            margin-top: 8px;
+            padding: 0 8px;
+            font-size: 13px;
+            color: #f0f0f0;
+            background: #172936;
+            border: 1px solid #536b7a;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        #chartSelect:focus {
+            border-color: #0878b9;
+        }
+
+        #chartSelect:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #openChartButton {
+            margin-top: 8px;
+        }
+
+        #openChartButton:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
         #pdfInput {
             width: 100%;
 
@@ -128,50 +272,6 @@
             border: 1px solid #536b7a;
 
             border-radius: 4px;
-        }
-
-
-        #pdfInput::file-selector-button {
-            padding: 6px 10px;
-
-            margin-right: 8px;
-
-            color: #f0f0f0;
-
-            background: #29485d;
-
-            border: 1px solid #536b7a;
-
-            border-radius: 4px;
-
-            cursor: pointer;
-        }
-
-
-        #pdfInput::file-selector-button:hover {
-            background: #0878b9;
-        }
-
-
-        .info {
-            margin-top: 15px;
-
-            font-size: 12px;
-
-            line-height: 1.5;
-
-            color: #bfcbd2;
-        }
-
-
-        .info code {
-            color: #ffffff;
-
-            background: #172936;
-
-            padding: 2px 4px;
-
-            border-radius: 3px;
         }
 
 
@@ -833,7 +933,143 @@
 
         }
 
-    </style>
+    
+
+        /* =====================================
+           ПОИСК АЭРОПОРТА — ВАРИАНТЫ КАК В AIRPORT SELECTOR
+           ===================================== */
+
+        .airport-search-box {
+            position: relative;
+            width: 100%;
+        }
+
+        .airport-input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .airport-search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 22px;
+            line-height: 1;
+            color: #111;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        #airportInput {
+            width: 100%;
+            height: 49px;
+            padding: 0 14px 0 42px;
+            border: 1px solid #b7b7b7;
+            border-radius: 0;
+            outline: none;
+            color: #171717;
+            background: #ffffff;
+            font-size: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        #airportInput::placeholder {
+            color: #777;
+        }
+
+        #airportInput:focus {
+            border-color: #888;
+        }
+
+        #airportSuggestions {
+            width: 100%;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .airport-result {
+            width: 100%;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 8px 14px;
+            background: #ffffff;
+            color: #111;
+            cursor: pointer;
+        }
+
+        .airport-result:hover {
+            background: #f5f5f5;
+        }
+
+        .airport-result-icon {
+            width: 27px;
+            min-width: 27px;
+            height: 27px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #075b9d;
+            font-size: 25px;
+        }
+
+        .airport-result-main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            overflow: hidden;
+        }
+
+        .airport-result-code {
+            font-size: 19px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .airport-result-name {
+            font-size: 18px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .airport-enter-button {
+            flex-shrink: 0;
+            min-width: 66px;
+            height: 32px;
+            padding: 0 11px;
+            border: 1px solid #777;
+            border-radius: 2px;
+            background: #eeeeee;
+            color: #111;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .airport-enter-button:hover {
+            background: #e2e2e2;
+        }
+
+        .airport-no-results {
+            padding: 12px 14px;
+            background: #ffffff;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Старый select больше не показываем — выбор выполняется
+           непосредственно нажатием на найденный вариант. */
+        #chartSelect,
+        #openChartButton {
+            display: none;
+        }
+
+</style>
 
 </head>
 
@@ -841,7 +1077,7 @@
 <body>
 
 
-<div class="app">
+<div class="app initial" id="app">
 
 
     <!-- =====================================
@@ -866,16 +1102,25 @@
 
         <div id="uploadBlock">
 
-            <input
-                type="file"
-                id="pdfInput"
-                accept=".pdf,application/pdf"
-            >
+            <div class="airport-label">
+                Код аэропорта
+            </div>
 
+            <div class="airport-search-box">
 
-            <div class="info">
+                <div class="airport-input-wrapper">
+                    <span class="airport-search-icon">⌕</span>
+                    <input
+                        type="text"
+                        id="airportInput"
+                        placeholder="Введите код аэропорта"
+                        autocomplete="off"
+                        spellcheck="false"
+                        maxlength="4"
+                    >
+                </div>
 
-                Выберите PDF-файл.
+                <div id="airportSuggestions"></div>
 
             </div>
 
@@ -899,7 +1144,7 @@
                     class="top-button"
                     id="changeFile"
                 >
-                    📄 Выбрать другой PDF
+                    📄 Выбрать другой чарт
                 </button>
 
 
@@ -1072,8 +1317,40 @@
        ЭЛЕМЕНТЫ
        ===================================== */
 
-    const pdfInput =
-        document.getElementById("pdfInput");
+    const airportInput =
+        document.getElementById("airportInput");
+
+    // Служебные элементы больше не нужны в интерфейсе, но старый код
+    // использует их. Создаём их программно, чтобы не было null.
+    let chartSelect =
+        document.getElementById("chartSelect");
+
+    if (!chartSelect) {
+        chartSelect = document.createElement("select");
+        chartSelect.id = "chartSelect";
+        chartSelect.style.display = "none";
+        document.body.appendChild(chartSelect);
+    }
+
+    let openChartButton =
+        document.getElementById("openChartButton");
+
+    if (!openChartButton) {
+        openChartButton = document.createElement("button");
+        openChartButton.id = "openChartButton";
+        openChartButton.style.display = "none";
+        document.body.appendChild(openChartButton);
+    }
+
+    let chartInfo =
+        document.getElementById("chartInfo");
+
+    if (!chartInfo) {
+        chartInfo = document.createElement("div");
+        chartInfo.id = "chartInfo";
+        chartInfo.style.display = "none";
+        document.body.appendChild(chartInfo);
+    }
 
 
     const uploadBlock =
@@ -1203,6 +1480,32 @@
 
     let currentSearch = "";
 
+    /*
+     * Список PDF-файлов, полученный с сервера.
+     *
+     * Формат:
+     *
+     * [
+     *     {
+     *         name: "UUEE.pdf",
+     *         code: "UUEE",
+     *         hasAsoc: true
+     *     }
+     * ]
+     */
+    let availableCharts = [];
+
+    let chartFiles = new Map();
+
+    /*
+     * Пути к каталогам на сервере.
+     * index.html находится рядом с папками charts и asoc.
+     */
+    const CHARTS_PATH = "./charts/";
+    const ASOC_PATH = "asoc/";
+
+    let chartListRequestId = 0;
+
 
     /*
      * Поворот.
@@ -1322,103 +1625,44 @@
        ===================================== */
 
     async function loadAssociationFile(
-        pdfFile
+        pdfFileName
     ) {
 
         pageNames = {};
-
         pageCategories = {};
 
-
         const txtFileName =
-            getAssociationFileName(
-                pdfFile.name
-            );
-
-
-        const txtPath =
-            "asoc/" +
-            encodeURIComponent(
-                txtFileName
-            );
-
-
-        console.log(
-            "Ищу файл ассоциаций:",
-            txtPath
-        );
-
+            getAssociationFileName(pdfFileName);
 
         try {
+            let text = null;
 
-            const response =
-                await fetch(
-                    txtPath,
-                    {
-                        cache: "no-cache"
-                    }
-                );
+            const chart = chartFiles.get(pdfFileName);
 
+            if (chart && chart.asocUrl) {
+                const response = await fetch(chart.asocUrl, {
+                    cache: "no-store"
+                });
 
-            if (!response.ok) {
+                if (response.ok) {
+                    text = await response.text();
+                }
+            }
 
-                console.log(
-                    "Файл ассоциаций не найден:",
-                    txtPath
-                );
-
+            if (text === null) {
                 return;
             }
 
+            const parsed = parseAssociationFile(text);
+            pageNames = parsed.names;
+            pageCategories = parsed.categories;
 
-            const text =
-                await response.text();
-
-
-            const parsed =
-                parseAssociationFile(
-                    text
-                );
-
-
-            pageNames =
-                parsed.names;
-
-
-            pageCategories =
-                parsed.categories;
-
-
-            console.log(
-                "Названия страниц:",
-                pageNames
-            );
-
-
-            console.log(
-                "Категории страниц:",
-                pageCategories
-            );
-
-        }
-
-        catch (error) {
-
-            console.warn(
-                "Не удалось загрузить файл ассоциаций:",
-                txtPath,
-                error
-            );
-
-
+        } catch (error) {
+            console.warn("Не удалось загрузить ASOC:", txtFileName, error);
             pageNames = {};
-
             pageCategories = {};
-
         }
-
     }
-
 
 
     /* =====================================
@@ -2517,13 +2761,13 @@
        ===================================== */
 
     async function openPDF(
-        pdfFile
+        pdfFileName
     ) {
 
         try {
 
             currentPdfName =
-                pdfFile.name;
+                pdfFileName;
 
 
             /*
@@ -2531,7 +2775,7 @@
              */
 
             await loadAssociationFile(
-                pdfFile
+                pdfFileName
             );
 
 
@@ -2543,41 +2787,74 @@
 
 
             /*
-             * PDF.
+             * Загружаем PDF напрямую с сервера.
+             * index.html и папка charts находятся на одном сервере.
              */
 
-            const arrayBuffer =
-                await pdfFile.arrayBuffer();
+            let chart = chartFiles.get(pdfFileName);
 
+            /*
+             * Если directory listing /charts/ ещё не успел загрузиться,
+             * строим путь к PDF напрямую по имени файла.
+             */
+            if (!chart || !chart.pdfUrl) {
+                const fallbackCode =
+                    pdfFileName.replace(/\.pdf$/i, "").toUpperCase();
 
-            const typedArray =
-                new Uint8Array(
-                    arrayBuffer
+                if (!/^[A-Z0-9]{4}$/.test(fallbackCode)) {
+                    throw new Error("Некорректный код аэропорта.");
+                }
+
+                chart = {
+                    name: pdfFileName,
+                    code: fallbackCode,
+                    hasAsoc: false,
+                    pdfUrl: CHARTS_PATH + encodeURIComponent(pdfFileName),
+                    asocUrl: null
+                };
+
+                chartFiles.set(pdfFileName, chart);
+            }
+
+            const pdfResponse = await fetch(chart.pdfUrl, {
+                cache: "no-store"
+            });
+
+            if (!pdfResponse.ok) {
+                throw new Error(
+                    "HTTP " + pdfResponse.status + " при загрузке " + pdfFileName
                 );
+            }
 
+            const arrayBuffer = await pdfResponse.arrayBuffer();
+            const typedArray = new Uint8Array(arrayBuffer);
 
             pdfDocument =
                 await pdfjsLib
-                    .getDocument(
-                        typedArray
-                    )
+                    .getDocument(typedArray)
                     .promise;
 
 
             console.log(
                 "PDF открыт.",
+                pdfFileName,
                 "Страниц:",
                 pdfDocument.numPages
             );
 
 
+            const app =
+                document.getElementById("app");
+
+            if (app) {
+                app.classList.remove("initial");
+            }
+
             uploadBlock.style.display =
                 "none";
 
-
             pageBlock.style.display =
                 "flex";
-
 
             currentPage = 1;
 
@@ -2586,11 +2863,7 @@
              * По умолчанию TAXI.
              *
              * Если TAXI в ASOC отсутствует,
-             * список будет пустым.
-             *
-             * Поэтому автоматически
-             * переключаемся на первую
-             * существующую категорию.
+             * выбираем первую существующую категорию.
              */
 
             const availableCategories =
@@ -2614,27 +2887,20 @@
                         "REF"
                     ].find(
                         function (category) {
-
                             return availableCategories.includes(
                                 category
                             );
-
                         }
                     );
 
 
                 if (firstCategory) {
-
                     currentCategory =
                         firstCategory;
-
                 }
-
                 else {
-
                     currentCategory =
                         "ALL";
-
                 }
 
             }
@@ -2645,7 +2911,6 @@
              */
 
             currentSearch = "";
-
             chartSearch.value = "";
 
 
@@ -2657,21 +2922,14 @@
                 function (button) {
 
                     button.classList.toggle(
-
                         "active",
-
                         button.dataset.category ===
                         currentCategory
-
                     );
 
                 }
             );
 
-
-            /*
-             * Список.
-             */
 
             createPageList(
                 pdfDocument.numPages
@@ -2680,9 +2938,6 @@
 
             /*
              * Сбрасываем поворот.
-             *
-             * При первом показе страницы
-             * orientation будет определён автоматически.
              */
 
             rotation = 0;
@@ -2696,18 +2951,12 @@
 
             inverted = false;
 
-
             canvas.style.filter =
                 "none";
-
 
             invertButton.textContent =
                 "☾ Ночная версия";
 
-
-            /*
-             * Показываем первую страницу.
-             */
 
             await showPage(
                 1
@@ -2722,9 +2971,10 @@
                 error
             );
 
-
             alert(
-                "Не удалось открыть PDF-файл."
+                "Не удалось открыть чарт " +
+                pdfFileName +
+                "."
             );
 
         }
@@ -2734,33 +2984,548 @@
 
 
     /* =====================================
-       ВЫБОР PDF
+       ЗАГРУЗКА СПИСКА ЧАРТОВ С СЕРВЕРА
        ===================================== */
 
-    pdfInput.addEventListener(
-        "change",
-        async function () {
+    async function loadCharts() {
 
-            if (
-                !this.files ||
-                this.files.length === 0
-            ) {
+        const requestId = ++chartListRequestId;
 
+        availableCharts = [];
+        chartFiles = new Map();
+
+        chartSelect.innerHTML =
+            '<option value="">Загрузка списка чартов...</option>';
+        chartSelect.disabled = true;
+        openChartButton.disabled = true;
+
+        try {
+
+            /*
+             * Важно: обычный браузер не умеет самостоятельно перечислять
+             * файлы в папке на сервере. Поэтому сервер должен показывать
+             * содержимое /charts/ как directory listing.
+             *
+             * Например:
+             *   /index.html
+             *   /charts/UUEE.pdf
+             *   /charts/KLAS.pdf
+             *   /asoc/UUEE.txt
+             *
+             * Никакого PHP или выбора папки здесь не используется.
+             */
+
+            const response = await fetch(CHARTS_PATH, {
+                cache: "no-store"
+            });
+
+            if (!response.ok) {
+                throw new Error(
+                    "Не удалось получить список /charts/ (HTTP " +
+                    response.status +
+                    ")"
+                );
+            }
+
+            const html = await response.text();
+            const parser = new DOMParser();
+            const documentFromServer = parser.parseFromString(
+                html,
+                "text/html"
+            );
+
+            const links =
+                Array.from(documentFromServer.querySelectorAll("a[href]"));
+
+            const foundNames = new Set();
+
+            links.forEach(function (link) {
+
+                const href = link.getAttribute("href") || "";
+
+                let fileName = "";
+
+                try {
+                    fileName =
+                        decodeURIComponent(
+                            href.split("?")[0].split("#")[0]
+                        )
+                            .split("/")
+                            .pop() || "";
+                } catch (_) {
+                    fileName =
+                        href.split("?")[0].split("#")[0]
+                            .split("/")
+                            .pop() || "";
+                }
+
+                if (!/^[A-Za-z0-9]{4}\.pdf$/i.test(fileName)) {
+                    return;
+                }
+
+                const code =
+                    fileName.replace(/\.pdf$/i, "").toUpperCase();
+
+                if (!/^[A-Z0-9]{4}$/.test(code)) {
+                    return;
+                }
+
+                if (foundNames.has(fileName.toLowerCase())) {
+                    return;
+                }
+
+                foundNames.add(fileName.toLowerCase());
+
+                const pdfUrl =
+                    CHARTS_PATH +
+                    encodeURIComponent(fileName);
+
+                /*
+                 * ASOC проверяем запросом HEAD.
+                 * Если HEAD запрещён сервером, пробуем GET.
+                 */
+                availableCharts.push({
+                    name: fileName,
+                    code: code,
+                    hasAsoc: false,
+                    pdfUrl: pdfUrl,
+                    asocUrl: null
+                });
+
+            });
+
+            if (requestId !== chartListRequestId) {
                 return;
             }
 
+            availableCharts.sort(function (a, b) {
+                return a.code.localeCompare(b.code);
+            });
 
-            const pdfFile =
-                this.files[0];
+            /*
+             * Определяем наличие соответствующего ASOC-файла.
+             * Promise.all выполняет проверки параллельно.
+             */
+            await Promise.all(
+                availableCharts.map(async function (chart) {
 
+                    const upperUrl =
+                        ASOC_PATH +
+                        encodeURIComponent(chart.code + ".txt");
+
+                    const lowerUrl =
+                        ASOC_PATH +
+                        encodeURIComponent(chart.code.toLowerCase() + ".txt");
+
+                    try {
+                        let asocResponse =
+                            await fetch(upperUrl, {
+                                method: "HEAD",
+                                cache: "no-store"
+                            });
+
+                        if (asocResponse.ok) {
+                            chart.hasAsoc = true;
+                            chart.asocUrl = upperUrl;
+                            return;
+                        }
+                    } catch (_) {}
+
+                    try {
+                        let asocResponse =
+                            await fetch(lowerUrl, {
+                                method: "HEAD",
+                                cache: "no-store"
+                            });
+
+                        if (asocResponse.ok) {
+                            chart.hasAsoc = true;
+                            chart.asocUrl = lowerUrl;
+                        }
+                    } catch (_) {}
+
+                })
+            );
+
+            availableCharts.forEach(function (chart) {
+                chartFiles.set(chart.name, chart);
+            });
+
+            updateChartSelect();
+
+            chartInfo.innerHTML =
+                'Список чартов загружен с сервера. Найдено PDF: <b>' +
+                availableCharts.length +
+                '</b>.<br><br>' +
+                '★ — имеется файл ассоциаций в папке <code>asoc</code>.';
+
+        } catch (error) {
+
+            console.error("Не удалось загрузить список чартов:", error);
+
+            availableCharts = [];
+            chartFiles.clear();
+
+            chartSelect.innerHTML =
+                '<option value="">Не удалось загрузить чарты</option>';
+
+            chartSelect.disabled = true;
+            openChartButton.disabled = true;
+
+            chartInfo.innerHTML =
+                'Не удалось получить список файлов из <code>charts</code>.<br><br>' +
+                'Проверьте, что сервер разрешает просмотр содержимого папки ' +
+                '<code>/charts/</code> (Directory Listing).';
+        }
+    }
+
+    /* =====================================
+       ОБНОВЛЕНИЕ ВЫПАДАЮЩЕГО СПИСКА
+       ===================================== */
+
+
+    /* =====================================
+       ВАРИАНТЫ АЭРОПОРТОВ ПОД ПОЛЕМ ПОИСКА
+       ===================================== */
+
+    const airportNames = {
+        "UMMS": "Minsk National Airport",
+        "UUEE": "Sheremetyevo International Airport",
+        "KLAS": "Harry Reid International Airport",
+        "UZTT": "Tolmachevo Airport",
+        "UGKO": "Kutaisi International Airport",
+        "KMDW": "Chicago Midway International Airport"
+    };
+
+    const airportSuggestions =
+        document.getElementById("airportSuggestions");
+
+    function getAirportName(code) {
+        return airportNames[code] || "Airport";
+    }
+
+    function renderAirportSuggestions() {
+
+        const code =
+            airportInput.value
+                .trim()
+                .toUpperCase();
+
+        airportSuggestions.innerHTML = "";
+
+        if (!code) {
+            airportSuggestions.style.display = "none";
+            return;
+        }
+
+        /*
+         * Для поиска используем список PDF, если он уже загружен.
+         * Если список ещё загружается или Directory Listing недоступен,
+         * используем известные ICAO-коды из airportNames.
+         * Поэтому сообщение «Аэропорт не найден» не появляется
+         * преждевременно во время загрузки /charts/.
+         */
+        const codesFromCharts = availableCharts.map(function (chart) {
+            return chart.code.toUpperCase();
+        });
+
+        const codes = Array.from(
+            new Set(
+                Object.keys(airportNames)
+                    .concat(codesFromCharts)
+            )
+        );
+
+        const matches = codes
+            .filter(function (airportCode) {
+                return airportCode.startsWith(code);
+            })
+            .sort();
+
+        if (!matches.length) {
+            airportSuggestions.style.display = "block";
+
+            const empty =
+                document.createElement("div");
+
+            empty.className = "airport-no-results";
+            empty.textContent = "Аэропорт не найден";
+
+            airportSuggestions.appendChild(empty);
+            return;
+        }
+
+        matches.slice(0, 10).forEach(function (airportCode) {
+
+            const result =
+                document.createElement("div");
+
+            result.className = "airport-result";
+            result.title = "Открыть " + airportCode;
+
+            const main =
+                document.createElement("div");
+
+            main.className = "airport-result-main";
+
+            const codeElement =
+                document.createElement("span");
+
+            codeElement.className = "airport-result-code";
+            codeElement.textContent = airportCode;
+
+            main.appendChild(codeElement);
+            result.appendChild(main);
+
+            result.addEventListener("click", async function () {
+                airportSuggestions.style.display = "none";
+                airportInput.value = airportCode;
+                await openAirportByCode(airportCode);
+            });
+
+            airportSuggestions.appendChild(result);
+        });
+
+        airportSuggestions.style.display = "block";
+    }
+
+
+    /*
+     * Открытие аэропорта по ICAO-коду.
+     * Если список /charts/ ещё не успел загрузиться, PDF всё равно
+     * открывается напрямую по пути charts/XXXX.pdf.
+     */
+    async function openAirportByCode(code) {
+
+        const normalizedCode =
+            code.trim().toUpperCase();
+
+        if (!/^[A-Z0-9]{4}$/.test(normalizedCode)) {
+            return;
+        }
+
+        let chart = availableCharts.find(function (item) {
+            return item.code === normalizedCode;
+        });
+
+        if (!chart) {
+            const fileName = normalizedCode + ".pdf";
+
+            chart = {
+                name: fileName,
+                code: normalizedCode,
+                hasAsoc: false,
+                pdfUrl: CHARTS_PATH + encodeURIComponent(fileName),
+                asocUrl: null
+            };
+
+            chartFiles.set(fileName, chart);
+        }
+
+        await openPDF(chart.name);
+    }
+
+
+    function updateChartSelect() {
+
+        const searchCode =
+            airportInput.value
+                .trim()
+                .toUpperCase();
+
+
+        chartSelect.innerHTML = "";
+
+
+        if (!searchCode) {
+
+            chartSelect.innerHTML =
+                '<option value="">Введите код аэропорта</option>';
+
+            chartSelect.disabled = true;
+            openChartButton.disabled = true;
+
+            return;
+        }
+
+
+        const matchingCharts =
+            availableCharts.filter(
+                function (chart) {
+
+                    return chart.code
+                        .toUpperCase()
+                        .startsWith(searchCode);
+
+                }
+            );
+
+
+        if (
+            matchingCharts.length === 0
+        ) {
+
+            chartSelect.innerHTML =
+                '<option value="">Чарты не найдены</option>';
+
+            chartSelect.disabled = true;
+            openChartButton.disabled = true;
+
+            return;
+
+        }
+
+
+        matchingCharts.forEach(
+            function (chart) {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    chart.name;
+
+                /*
+                 * В списке показываем только XXXX,
+                 * без .pdf.
+                 *
+                 * Если есть ASOC:
+                 * XXXX ★
+                 */
+
+                option.textContent =
+                    chart.code +
+                    (
+                        chart.hasAsoc
+                            ? " ★"
+                            : ""
+                    );
+
+                chartSelect.appendChild(
+                    option
+                );
+
+            }
+        );
+
+
+        chartSelect.disabled = false;
+        openChartButton.disabled = false;
+
+        chartInfo.innerHTML =
+            "Найдено чартов: <b>" +
+            matchingCharts.length +
+            "</b><br><br>" +
+            "★ — имеется файл ассоциаций в папке <code>asoc</code>.";
+
+    }
+
+
+    /* =====================================
+       ВВОД КОДА АЭРОПОРТА
+       ===================================== */
+
+    airportInput.addEventListener(
+        "input",
+        function () {
+
+            this.value =
+                this.value
+                    .replace(
+                        /[^a-zA-Z0-9]/g,
+                        ""
+                    )
+                    .toUpperCase()
+                    .slice(0, 4);
+
+            updateChartSelect();
+            renderAirportSuggestions();
+
+        }
+    );
+
+
+
+    document.addEventListener("mousedown", function (event) {
+        const box = document.querySelector(".airport-search-box");
+        if (box && !box.contains(event.target)) {
+            airportSuggestions.style.display = "none";
+        }
+    });
+
+    /* =====================================
+       ВЫБОР ЧАРТА
+       ===================================== */
+
+    chartSelect.addEventListener(
+        "change",
+        function () {
+
+            openChartButton.disabled =
+                !this.value;
+
+        }
+    );
+
+
+    /* =====================================
+       ОТКРЫТИЕ ЧАРТА
+       ===================================== */
+
+    openChartButton.addEventListener(
+        "click",
+        async function () {
+
+            const selectedChart =
+                chartSelect.value;
+
+            if (!selectedChart) {
+                return;
+            }
 
             await openPDF(
-                pdfFile
+                selectedChart
             );
 
         }
     );
 
+
+    /*
+     * Можно открыть чарт двойным кликом
+     * по выпадающему списку.
+     */
+
+    chartSelect.addEventListener(
+        "dblclick",
+        async function () {
+
+            if (!this.value) {
+                return;
+            }
+
+            await openPDF(
+                this.value
+            );
+
+        }
+    );
+
+
+    /*
+     * Список чартов автоматически загружается с сервера
+     * из папки /charts/.
+     */
+
+
+
+    /* =====================================
+       АВТОМАТИЧЕСКАЯ ЗАГРУЗКА ЧАРТОВ
+       ===================================== */
+
+    loadCharts();
 
 
     /* =====================================
@@ -4028,12 +4793,31 @@
             pageBlock.style.display =
                 "none";
 
+            const app =
+                document.getElementById("app");
+
+            if (app) {
+                app.classList.add("initial");
+            }
 
             uploadBlock.style.display =
                 "block";
 
 
-            pdfInput.value = "";
+            chartSelect.value = "";
+            airportInput.value = "";
+            if (airportSuggestions) {
+                airportSuggestions.innerHTML = "";
+                airportSuggestions.style.display = "none";
+            }
+
+            chartSelect.innerHTML =
+                '<option value="">Введите код аэропорта</option>';
+
+            chartSelect.disabled = true;
+            openChartButton.disabled = true;
+
+            loadCharts();
 
         }
     );
@@ -4079,6 +4863,7 @@
 
 
 </script>
+
 
 
 </body>
