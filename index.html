@@ -1,0 +1,4086 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>SkyChartsViewer</title>
+
+
+    <!-- PDF.js -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+
+            font-family: Arial, sans-serif;
+
+            background: #1e3344;
+        }
+
+
+        /* =====================================
+           ОСНОВНОЙ КОНТЕЙНЕР
+           ===================================== */
+
+        .app {
+            display: flex;
+
+            width: 100%;
+            height: 100vh;
+
+            overflow: hidden;
+
+            background: #1e3344;
+        }
+
+
+        /* =====================================
+           БОКОВАЯ ПАНЕЛЬ
+           ===================================== */
+
+        .sidebar {
+            width: 310px;
+            min-width: 310px;
+
+            height: 100%;
+
+            background: #203748;
+
+            border-right: 1px solid #142633;
+
+            display: flex;
+            flex-direction: column;
+
+            overflow: hidden;
+        }
+
+
+        /* =====================================
+           ЗАГОЛОВОК
+           ===================================== */
+
+        .sidebar-header {
+            padding: 18px 15px 14px 15px;
+
+            flex-shrink: 0;
+
+            border-bottom: 1px solid #536b7a;
+
+            background: #172936;
+        }
+
+
+        .sidebar h1 {
+            margin: 0;
+
+            font-size: 21px;
+
+            color: #f0f0f0;
+        }
+
+
+        /* =====================================
+           ВЫБОР PDF
+           ===================================== */
+
+        #uploadBlock {
+            display: block;
+
+            padding: 15px;
+
+            background: #203748;
+
+            color: #d7e0e5;
+        }
+
+
+        #pdfInput {
+            width: 100%;
+
+            padding: 8px;
+
+            font-size: 13px;
+
+            color: #f0f0f0;
+
+            background: #172936;
+
+            border: 1px solid #536b7a;
+
+            border-radius: 4px;
+        }
+
+
+        #pdfInput::file-selector-button {
+            padding: 6px 10px;
+
+            margin-right: 8px;
+
+            color: #f0f0f0;
+
+            background: #29485d;
+
+            border: 1px solid #536b7a;
+
+            border-radius: 4px;
+
+            cursor: pointer;
+        }
+
+
+        #pdfInput::file-selector-button:hover {
+            background: #0878b9;
+        }
+
+
+        .info {
+            margin-top: 15px;
+
+            font-size: 12px;
+
+            line-height: 1.5;
+
+            color: #bfcbd2;
+        }
+
+
+        .info code {
+            color: #ffffff;
+
+            background: #172936;
+
+            padding: 2px 4px;
+
+            border-radius: 3px;
+        }
+
+
+        /* =====================================
+           УПРАВЛЕНИЕ
+           ===================================== */
+
+        #pageBlock {
+            display: none;
+
+            height: 100%;
+
+            min-height: 0;
+
+            flex-direction: column;
+
+            background: #203748;
+        }
+
+
+        /* =====================================
+           ВЕРХНИЕ КНОПКИ
+           ===================================== */
+
+        .top-controls {
+            padding: 10px;
+
+            flex-shrink: 0;
+
+            border-bottom: 1px solid #536b7a;
+
+            background: #172936;
+        }
+
+
+        .top-button {
+            width: 100%;
+
+            padding: 8px;
+
+            margin: 3px 0;
+
+            font-size: 13px;
+
+            color: #e5edf1;
+
+            background: #29485d;
+
+            border: 1px solid #536b7a;
+
+            border-radius: 5px;
+
+            cursor: pointer;
+
+            transition:
+                background 0.15s ease,
+                border-color 0.15s ease;
+        }
+
+
+        .top-button:hover {
+            background: #0878b9;
+
+            border-color: #0983c9;
+        }
+
+
+        .top-button:active {
+            background: #065d8d;
+        }
+
+
+        /* =====================================
+           КНОПКИ ПОВОРОТА
+           ===================================== */
+
+        .rotate-controls {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 4px;
+            margin: 3px 0;
+        }
+
+
+        .rotate-button {
+            width: 34px;
+            height: 30px;
+            padding: 0;
+            border: 1px solid #536b7a;
+            border-radius: 4px;
+            color: #e5edf1;
+            background: #29485d;
+            font-size: 20px;
+            line-height: 28px;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition:
+                background 0.15s ease,
+                border-color 0.15s ease,
+                transform 0.08s ease;
+        }
+
+
+        .rotate-button:hover {
+            background: #0878b9;
+            border-color: #0983c9;
+        }
+
+
+        .rotate-button:active {
+            background: #065d8d;
+            transform: scale(0.94);
+        }
+
+
+        /* =====================================
+           ФИЛЬТРЫ
+           ===================================== */
+
+        .chart-filter {
+            padding: 7px 10px 9px 10px;
+
+            background: #172936;
+
+            border-bottom: 1px solid #536b7a;
+
+            flex-shrink: 0;
+        }
+
+
+        /* =====================================
+           ПОИСК
+           ===================================== */
+
+        .search-wrapper {
+            position: relative;
+
+            width: 100%;
+        }
+
+
+        .search-icon {
+            position: absolute;
+
+            left: 9px;
+            top: 50%;
+
+            transform: translateY(-50%);
+
+            color: #7f939f;
+
+            font-size: 14px;
+
+            pointer-events: none;
+        }
+
+
+        #chartSearch {
+            width: 100%;
+
+            height: 31px;
+
+            padding: 0 9px 0 30px;
+
+            border: 1px solid #233f52;
+
+            border-radius: 4px;
+
+            outline: none;
+
+            color: #dce6eb;
+
+            background: #203748;
+
+            font-size: 12px;
+
+            transition:
+                border-color 0.15s ease,
+                background 0.15s ease;
+        }
+
+
+        #chartSearch::placeholder {
+            color: #718692;
+        }
+
+
+        #chartSearch:focus {
+            border-color: #0878b9;
+
+            background: #233d4e;
+        }
+
+
+        /* =====================================
+           КНОПКИ КАТЕГОРИЙ
+           ===================================== */
+
+        .category-buttons {
+            display: flex;
+
+            align-items: center;
+
+            gap: 4px;
+
+            margin-top: 7px;
+        }
+
+
+        .category-button {
+            flex: 1;
+
+            min-width: 0;
+
+            height: 20px;
+
+            padding: 0 4px;
+
+            border: 0;
+
+            border-radius: 3px;
+
+            background: transparent;
+
+            font-size: 10px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition:
+                background 0.15s ease,
+                color 0.15s ease,
+                opacity 0.15s ease;
+        }
+
+
+        /*
+         * Цвета категорий.
+         */
+
+        .category-button[data-category="ALL"] {
+            color: #aab9c1;
+        }
+
+
+        .category-button[data-category="STAR"] {
+            color: #69c86b;
+        }
+
+
+        .category-button[data-category="APP"] {
+            color: #e3a65a;
+        }
+
+
+        .category-button[data-category="TAXI"] {
+            color: #18b9e8;
+        }
+
+
+        .category-button[data-category="SID"] {
+            color: #e06ca7;
+        }
+
+
+        .category-button[data-category="REF"] {
+            color: #ad75db;
+        }
+
+
+        .category-button:hover {
+            background: rgba(255,255,255,0.07);
+        }
+
+
+        /*
+         * Активная кнопка.
+         */
+
+        .category-button.active {
+            color: #ffffff !important;
+
+            background: #08a8d5;
+
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.08);
+        }
+
+
+        .category-button.active:hover {
+            background: #09b5e4;
+        }
+
+
+        /* =====================================
+           ЗАГОЛОВОК СПИСКА
+           ===================================== */
+
+        .pages-header {
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            padding: 8px 12px;
+
+            background: #172936;
+
+            border-bottom: 1px solid #536b7a;
+
+            flex-shrink: 0;
+        }
+
+
+        .pages-title {
+            font-size: 13px;
+
+            font-weight: bold;
+
+            color: #f0f0f0;
+        }
+
+
+        .pages-hint {
+            font-size: 10px;
+
+            color: #9fb0bb;
+        }
+
+
+        /* =====================================
+           СПИСОК СТРАНИЦ
+           ===================================== */
+
+        #pageList {
+            flex: 1;
+
+            min-height: 0;
+
+            overflow-y: auto;
+
+            overflow-x: hidden;
+
+            background: #1e3344;
+        }
+
+
+        /* =====================================
+           ПОЛОСА ПРОКРУТКИ
+           ===================================== */
+
+        #pageList::-webkit-scrollbar {
+            width: 8px;
+        }
+
+
+        #pageList::-webkit-scrollbar-track {
+            background: #172936;
+        }
+
+
+        #pageList::-webkit-scrollbar-thumb {
+            background: #536b7a;
+
+            border-radius: 4px;
+        }
+
+
+        #pageList::-webkit-scrollbar-thumb:hover {
+            background: #6e8797;
+        }
+
+
+        /* =====================================
+           ЭЛЕМЕНТ СТРАНИЦЫ
+           ===================================== */
+
+        .page-item {
+            display: flex;
+
+            align-items: stretch;
+
+            min-height: 57px;
+
+            border-bottom:
+                1px solid rgba(255,255,255,0.06);
+
+            background: #203748;
+
+            cursor: pointer;
+
+            transition:
+                background 0.15s ease;
+        }
+
+
+        .page-item:hover {
+            background: #29485d;
+        }
+
+
+        /* =====================================
+           ТЕКУЩАЯ СТРАНИЦА
+           ===================================== */
+
+        .page-item.active {
+            background: #0878b9;
+        }
+
+
+        .page-item.active:hover {
+            background: #0983c9;
+        }
+
+
+        /* =====================================
+           ЗАКРЕПЛЁННАЯ
+           ===================================== */
+
+        .page-item.pinned {
+            background: #725f20;
+        }
+
+
+        .page-item.pinned:hover {
+            background: #856e26;
+        }
+
+
+        .page-item.active.pinned {
+            background: #0b78a8;
+        }
+
+
+        /* =====================================
+           ТЕКСТ
+           ===================================== */
+
+        .page-info {
+            flex: 1;
+
+            min-width: 0;
+
+            padding: 9px 8px 9px 14px;
+
+            display: flex;
+
+            align-items: center;
+        }
+
+
+        .page-name {
+            color: #f0f0f0;
+
+            font-size: 13px;
+
+            line-height: 1.3;
+
+            font-weight: 500;
+
+            word-break: break-word;
+        }
+
+
+        .page-title {
+            display: block;
+        }
+
+
+        .page-id {
+            display: block;
+
+            margin-top: 2px;
+
+            font-weight: 700;
+
+            color: #ffffff;
+        }
+
+
+        .page-number {
+            color: #bfcbd2;
+
+            font-size: 12px;
+
+            font-weight: bold;
+        }
+
+
+        /* =====================================
+           КАТЕГОРИЯ НА СТРАНИЦЕ
+           ===================================== */
+
+        .page-category {
+            display: inline-block;
+
+            margin-top: 5px;
+
+            padding: 2px 5px;
+
+            border-radius: 3px;
+
+            font-size: 8px;
+
+            font-weight: bold;
+
+            letter-spacing: 0.4px;
+
+            color: rgba(255,255,255,0.75);
+
+            background: rgba(0,0,0,0.16);
+        }
+
+
+        /* =====================================
+           PIN
+           ===================================== */
+
+        .pin-button {
+            width: 48px;
+
+            min-width: 48px;
+
+            border: 0;
+
+            border-left:
+                1px solid rgba(255,255,255,0.06);
+
+            background: transparent;
+
+            color: #d7e0e5;
+
+            font-size: 21px;
+
+            cursor: pointer;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            transition:
+                background 0.15s ease,
+                color 0.15s ease;
+        }
+
+
+        .pin-button:hover {
+            background:
+                rgba(255,255,255,0.10);
+
+            color: white;
+        }
+
+
+        .page-item.pinned .pin-button {
+            color: #ffe27a;
+        }
+
+
+        .page-item.pinned .pin-button:hover {
+            color: #fff0a8;
+        }
+
+
+        /* =====================================
+           НЕТ РЕЗУЛЬТАТОВ
+           ===================================== */
+
+        .no-results {
+            padding: 25px 15px;
+
+            text-align: center;
+
+            color: #8296a2;
+
+            font-size: 12px;
+
+            line-height: 1.5;
+        }
+
+
+        /* =====================================
+           ОБЛАСТЬ PDF
+           ===================================== */
+
+        .viewer {
+            position: relative;
+
+            flex: 1;
+
+            min-width: 0;
+            min-height: 0;
+
+            overflow: hidden;
+
+            background: #a9a9a9;
+
+            cursor: default;
+
+            touch-action: none;
+        }
+
+
+        .viewer.dragging {
+            cursor: grabbing;
+        }
+
+
+        /* =====================================
+           CANVAS
+           ===================================== */
+
+        #pdfCanvas {
+            position: absolute;
+
+            left: 0;
+            top: 0;
+
+            display: block;
+
+            background: white;
+
+            box-shadow:
+                0 3px 15px
+                rgba(0, 0, 0, 0.35);
+
+            user-select: none;
+
+            -webkit-user-drag: none;
+
+            will-change: transform;
+
+            transform-origin: 0 0;
+
+            transition:
+                filter 0.15s ease;
+        }
+
+
+        /* =====================================
+           УЗКИЙ ЭКРАН
+           ===================================== */
+
+        @media (max-width: 700px) {
+
+            .sidebar {
+                width: 260px;
+
+                min-width: 260px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="app">
+
+
+    <!-- =====================================
+         БОКОВАЯ ПАНЕЛЬ
+         ===================================== -->
+
+    <aside class="sidebar">
+
+
+        <div class="sidebar-header">
+
+            <h1>
+                SkyChartsViewer
+            </h1>
+
+        </div>
+
+
+        <!-- =================================
+             ВЫБОР PDF
+             ================================= -->
+
+        <div id="uploadBlock">
+
+            <input
+                type="file"
+                id="pdfInput"
+                accept=".pdf,application/pdf"
+            >
+
+
+            <div class="info">
+
+                Выберите PDF-файл.
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================
+             УПРАВЛЕНИЕ
+             ===================================== -->
+
+        <div id="pageBlock">
+
+
+            <!-- =================================
+                 ВЕРХНИЕ КНОПКИ
+                 ================================= -->
+
+            <div class="top-controls">
+
+                <button
+                    class="top-button"
+                    id="changeFile"
+                >
+                    📄 Выбрать другой PDF
+                </button>
+
+
+                <div class="rotate-controls">
+                    <button
+                        class="rotate-button"
+                        id="rotateLeftButton"
+                        type="button"
+                        title="Повернуть против часовой стрелки"
+                        aria-label="Повернуть против часовой стрелки"
+                    >↶</button>
+
+                    <button
+                        class="rotate-button"
+                        id="rotateRightButton"
+                        type="button"
+                        title="Повернуть по часовой стрелке"
+                        aria-label="Повернуть по часовой стрелке"
+                    >↷</button>
+                </div>
+
+
+                <button
+                    class="top-button"
+                    id="invertButton"
+                >
+                    ☾ Ночная версия
+                </button>
+
+            </div>
+
+
+            <!-- =================================
+                 ПОИСК И КАТЕГОРИИ
+                 ================================= -->
+
+            <div class="chart-filter">
+
+
+                <div class="search-wrapper">
+
+                    <span class="search-icon">
+                        🔍
+                    </span>
+
+                    <input
+                        type="text"
+                        id="chartSearch"
+                        placeholder="Filter charts ..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                <div class="category-buttons">
+
+
+                    <button
+                        class="category-button"
+                        data-category="STAR"
+                    >
+                        STAR
+                    </button>
+
+
+                    <button
+                        class="category-button"
+                        data-category="APP"
+                    >
+                        APP
+                    </button>
+
+
+                    <button
+                        class="category-button active"
+                        data-category="TAXI"
+                    >
+                        TAXI
+                    </button>
+
+
+                    <button
+                        class="category-button"
+                        data-category="SID"
+                    >
+                        SID
+                    </button>
+
+
+                    <button
+                        class="category-button"
+                        data-category="REF"
+                    >
+                        REF
+                    </button>
+
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================
+                 ЗАГОЛОВОК СПИСКА
+                 ================================= -->
+
+            <div class="pages-header">
+
+                <span
+                    class="pages-title"
+                    id="pagesTitle"
+                >
+                    TAXI
+                </span>
+
+                <span class="pages-hint">
+                    📌 — закрепить
+                </span>
+
+            </div>
+
+
+            <!-- =================================
+                 СПИСОК СТРАНИЦ
+                 ================================= -->
+
+            <div id="pageList"></div>
+
+
+        </div>
+
+
+    </aside>
+
+
+    <!-- =====================================
+         ПРОСМОТР PDF
+         ===================================== -->
+
+    <main
+        class="viewer"
+        id="viewer"
+    >
+
+        <canvas
+            id="pdfCanvas"
+        ></canvas>
+
+    </main>
+
+
+</div>
+
+
+
+<script>
+
+
+    /* =====================================
+       PDF.JS WORKER
+       ===================================== */
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+
+
+    /* =====================================
+       ЭЛЕМЕНТЫ
+       ===================================== */
+
+    const pdfInput =
+        document.getElementById("pdfInput");
+
+
+    const uploadBlock =
+        document.getElementById("uploadBlock");
+
+
+    const pageBlock =
+        document.getElementById("pageBlock");
+
+
+    const pageList =
+        document.getElementById("pageList");
+
+
+    const changeFile =
+        document.getElementById("changeFile");
+
+
+    const rotateLeftButton =
+        document.getElementById("rotateLeftButton");
+
+
+    const rotateRightButton =
+        document.getElementById("rotateRightButton");
+
+
+    const invertButton =
+        document.getElementById("invertButton");
+
+
+    const viewer =
+        document.getElementById("viewer");
+
+
+    const canvas =
+        document.getElementById("pdfCanvas");
+
+
+    const ctx =
+        canvas.getContext("2d");
+
+
+    const chartSearch =
+        document.getElementById("chartSearch");
+
+
+    const pagesTitle =
+        document.getElementById("pagesTitle");
+
+
+    const categoryButtons =
+        document.querySelectorAll(
+            ".category-button"
+        );
+
+
+
+    /* =====================================
+       ПЕРЕМЕННЫЕ
+       ===================================== */
+
+    let pdfDocument = null;
+
+
+    /*
+     * Названия страниц.
+     *
+     * Формат:
+     *
+     * {
+     *     1: "AIRPORT BRIEFING (GEN) 10-1P"
+     * }
+     */
+
+    let pageNames = {};
+
+
+    /*
+     * Категории страниц.
+     *
+     * Формат:
+     *
+     * {
+     *     1: "REF",
+     *     2: "REF",
+     *     6: "STAR"
+     * }
+     */
+
+    let pageCategories = {};
+
+
+    /*
+     * Закреплённые страницы.
+     */
+
+    let pinnedPages = new Set();
+
+
+    /*
+     * Имя PDF.
+     */
+
+    let currentPdfName = "";
+
+
+    /*
+     * Текущая страница.
+     */
+
+    let currentPage = 1;
+
+
+    /*
+     * Текущая категория.
+     *
+     * По умолчанию TAXI,
+     * как на показанном интерфейсе.
+     */
+
+    let currentCategory = "TAXI";
+
+
+    /*
+     * Поиск.
+     */
+
+    let currentSearch = "";
+
+
+    /*
+     * Поворот.
+     */
+
+    let rotation = 0;
+
+
+    /*
+     * Автоматический поворот по ориентации текста.
+     *
+     * Для каждой страницы запоминается найденный
+     * угол текста. Если основная масса текста
+     * расположена вертикально, страница автоматически
+     * поворачивается так, чтобы текст стал горизонтальным.
+     */
+    let automaticRotation = 0;
+
+    /*
+     * Ручная поправка кнопками поворота.
+     * После автоматического определения пользователь
+     * может дополнительно повернуть страницу.
+     */
+    let manualRotation = 0;
+
+
+    /*
+     * Инверсия.
+     */
+
+    let inverted = false;
+
+
+    /*
+     * Масштаб.
+     */
+
+    let zoom = 1;
+
+    let renderedZoom = 1;
+
+
+    const MIN_ZOOM = 0.25;
+
+    const MAX_ZOOM = 5;
+
+
+    /*
+     * Положение страницы.
+     */
+
+    let offsetX = 0;
+
+    let offsetY = 0;
+
+
+    /*
+     * Целевые значения.
+     */
+
+    let targetZoom = 1;
+
+    let targetOffsetX = 0;
+
+    let targetOffsetY = 0;
+
+
+    /*
+     * Анимация.
+     */
+
+    let animationFrame = null;
+
+
+    /*
+     * Таймер рендера.
+     */
+
+    let renderTimer = null;
+
+
+    /*
+     * Перемещение мышью.
+     */
+
+    let isDragging = false;
+
+    let dragStartX = 0;
+
+    let dragStartY = 0;
+
+    let dragOffsetX = 0;
+
+    let dragOffsetY = 0;
+
+
+
+    /* =====================================
+       ПОЛУЧЕНИЕ ИМЕНИ TXT
+       ===================================== */
+
+    function getAssociationFileName(
+        pdfFileName
+    ) {
+
+        return pdfFileName.replace(
+            /\.pdf$/i,
+            ".txt"
+        );
+
+    }
+
+
+
+    /* =====================================
+       ЗАГРУЗКА TXT ИЗ ASOC
+       ===================================== */
+
+    async function loadAssociationFile(
+        pdfFile
+    ) {
+
+        pageNames = {};
+
+        pageCategories = {};
+
+
+        const txtFileName =
+            getAssociationFileName(
+                pdfFile.name
+            );
+
+
+        const txtPath =
+            "asoc/" +
+            encodeURIComponent(
+                txtFileName
+            );
+
+
+        console.log(
+            "Ищу файл ассоциаций:",
+            txtPath
+        );
+
+
+        try {
+
+            const response =
+                await fetch(
+                    txtPath,
+                    {
+                        cache: "no-cache"
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                console.log(
+                    "Файл ассоциаций не найден:",
+                    txtPath
+                );
+
+                return;
+            }
+
+
+            const text =
+                await response.text();
+
+
+            const parsed =
+                parseAssociationFile(
+                    text
+                );
+
+
+            pageNames =
+                parsed.names;
+
+
+            pageCategories =
+                parsed.categories;
+
+
+            console.log(
+                "Названия страниц:",
+                pageNames
+            );
+
+
+            console.log(
+                "Категории страниц:",
+                pageCategories
+            );
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "Не удалось загрузить файл ассоциаций:",
+                txtPath,
+                error
+            );
+
+
+            pageNames = {};
+
+            pageCategories = {};
+
+        }
+
+    }
+
+
+
+    /* =====================================
+       РАЗБОР ASOC
+       ===================================== */
+
+    function parseAssociationFile(
+        text
+    ) {
+
+        const names = {};
+
+        const categories = {};
+
+
+        /*
+         * Разрешённые категории.
+         */
+
+        const allowedCategories = new Set([
+            "REF",
+            "STAR",
+            "TAXI",
+            "SID",
+            "APP"
+        ]);
+
+
+        /*
+         * Текущая категория.
+         */
+
+        let currentSection = null;
+
+
+        const lines =
+            text.split(/\r?\n/);
+
+
+        for (
+            const rawLine of lines
+        ) {
+
+            const line =
+                rawLine.trim();
+
+
+            if (!line) {
+
+                continue;
+            }
+
+
+            /*
+             * Проверяем заголовок:
+             *
+             * REF
+             * STAR
+             * TAXI
+             * SID
+             * APP
+             */
+
+            const sectionMatch =
+                line.match(
+                    /^([A-Z]+)\s*$/i
+                );
+
+
+            if (sectionMatch) {
+
+                const section =
+                    sectionMatch[1]
+                        .toUpperCase();
+
+
+                if (
+                    allowedCategories.has(
+                        section
+                    )
+                ) {
+
+                    currentSection =
+                        section;
+
+                    continue;
+                }
+
+            }
+
+
+            /*
+             * Проверяем строку:
+             *
+             * 1 = "Название"
+             */
+
+            const pageMatch =
+                line.match(
+                    /^\s*(\d+)\s*=\s*["'](.*?)["']\s*$/
+                );
+
+
+            if (!pageMatch) {
+
+                continue;
+            }
+
+
+            const pageNumber =
+                Number(
+                    pageMatch[1]
+                );
+
+
+            const pageName =
+                pageMatch[2].trim();
+
+
+            if (
+                pageNumber >= 1 &&
+                pageName.length > 0
+            ) {
+
+                names[pageNumber] =
+                    pageName;
+
+
+                /*
+                 * Если перед страницей
+                 * был заголовок категории,
+                 * записываем категорию.
+                 */
+
+                if (currentSection) {
+
+                    categories[pageNumber] =
+                        currentSection;
+
+                }
+
+            }
+
+        }
+
+
+        return {
+            names: names,
+            categories: categories
+        };
+
+    }
+
+
+
+    /* =====================================
+       КЛЮЧ LOCALSTORAGE
+       ===================================== */
+
+    function getPinnedStorageKey() {
+
+        return "pdfViewerPinned_" +
+            currentPdfName;
+
+    }
+
+
+
+    /* =====================================
+       ЗАГРУЗКА PIN
+       ===================================== */
+
+    function loadPinnedPages() {
+
+        pinnedPages =
+            new Set();
+
+
+        if (!currentPdfName) {
+
+            return;
+        }
+
+
+        try {
+
+            const saved =
+                localStorage.getItem(
+                    getPinnedStorageKey()
+                );
+
+
+            if (!saved) {
+
+                return;
+            }
+
+
+            const pages =
+                JSON.parse(
+                    saved
+                );
+
+
+            if (
+                Array.isArray(pages)
+            ) {
+
+                for (
+                    const page of pages
+                ) {
+
+                    const number =
+                        Number(page);
+
+
+                    if (
+                        Number.isInteger(number) &&
+                        number >= 1
+                    ) {
+
+                        pinnedPages.add(
+                            number
+                        );
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "Не удалось загрузить закреплённые страницы:",
+                error
+            );
+
+        }
+
+    }
+
+
+
+    /* =====================================
+       СОХРАНЕНИЕ PIN
+       ===================================== */
+
+    function savePinnedPages() {
+
+        if (!currentPdfName) {
+
+            return;
+        }
+
+
+        try {
+
+            localStorage.setItem(
+
+                getPinnedStorageKey(),
+
+                JSON.stringify(
+                    Array.from(
+                        pinnedPages
+                    )
+                )
+
+            );
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "Не удалось сохранить закреплённые страницы:",
+                error
+            );
+
+        }
+
+    }
+
+
+
+    /* =====================================
+       РАЗБОР НАЗВАНИЯ СТРАНИЦЫ
+       ===================================== */
+
+    function formatPageName(
+        name
+    ) {
+
+        /*
+         * ID может начинаться
+         * с любого номера.
+         *
+         * Примеры:
+         *
+         * 10-1P
+         * 10-1P1
+         * 10-2
+         * 11-1
+         * 12-40
+         * 16-1
+         */
+
+        const match =
+            name.match(
+                /^(.*?)(?:\s+)(\d+-\d+[A-Z0-9-]*)\s*$/i
+            );
+
+
+        if (match) {
+
+            const title =
+                match[1].trim();
+
+
+            const pageId =
+                match[2].trim();
+
+
+            return {
+
+                title: title,
+
+                id: pageId
+
+            };
+
+        }
+
+
+        return {
+
+            title: name,
+
+            id: ""
+
+        };
+
+    }
+
+
+
+    /* =====================================
+       ПРОВЕРКА ФИЛЬТРА
+       ===================================== */
+
+    function pageMatchesFilter(
+        pageNumber
+    ) {
+
+        /*
+         * Категория.
+         */
+
+        if (
+            currentCategory !== "ALL"
+        ) {
+
+            const category =
+                pageCategories[
+                    pageNumber
+                ];
+
+
+            if (
+                category !==
+                currentCategory
+            ) {
+
+                return false;
+            }
+
+        }
+
+
+        /*
+         * Поиск.
+         */
+
+        if (
+            currentSearch
+        ) {
+
+            const name =
+                pageNames[
+                    pageNumber
+                ] || "";
+
+
+            const formatted =
+                formatPageName(
+                    name
+                );
+
+
+            const searchText =
+                (
+                    name +
+                    " " +
+                    formatted.title +
+                    " " +
+                    formatted.id +
+                    " " +
+                    pageNumber
+                ).toLowerCase();
+
+
+            if (
+                !searchText.includes(
+                    currentSearch
+                )
+            ) {
+
+                return false;
+            }
+
+        }
+
+
+        return true;
+
+    }
+
+
+
+    /* =====================================
+       ОБНОВЛЕНИЕ ЗАГОЛОВКА
+       ===================================== */
+
+    function updatePagesTitle() {
+
+        if (
+            currentSearch
+        ) {
+
+            pagesTitle.textContent =
+                currentCategory === "ALL"
+                    ? "Поиск"
+                    : currentCategory + " · Поиск";
+
+        }
+
+        else {
+
+            pagesTitle.textContent =
+                currentCategory === "ALL"
+                    ? "Все страницы"
+                    : currentCategory;
+
+        }
+
+    }
+
+
+
+    /* =====================================
+       СОЗДАНИЕ СПИСКА
+       ===================================== */
+
+    function createPageList(
+        pageCount
+    ) {
+
+        pageList.innerHTML = "";
+
+
+        let visibleCount = 0;
+
+
+        for (
+            let i = 1;
+            i <= pageCount;
+            i++
+        ) {
+
+            /*
+             * Проверяем фильтры.
+             */
+
+            if (
+                !pageMatchesFilter(i)
+            ) {
+
+                continue;
+            }
+
+
+            visibleCount++;
+
+
+            /*
+             * Главный элемент.
+             */
+
+            const pageItem =
+                document.createElement(
+                    "div"
+                );
+
+
+            pageItem.className =
+                "page-item";
+
+
+            pageItem.dataset.page =
+                i;
+
+
+            /*
+             * Закреплённая.
+             */
+
+            if (
+                pinnedPages.has(i)
+            ) {
+
+                pageItem.classList.add(
+                    "pinned"
+                );
+
+            }
+
+
+            /*
+             * Информация.
+             */
+
+            const pageInfo =
+                document.createElement(
+                    "div"
+                );
+
+
+            pageInfo.className =
+                "page-info";
+
+
+            /*
+             * Название.
+             */
+
+            const pageName =
+                document.createElement(
+                    "div"
+                );
+
+
+            pageName.className =
+                "page-name";
+
+
+            if (
+                pageNames[i] &&
+                pageNames[i].trim() !== ""
+            ) {
+
+                const formatted =
+                    formatPageName(
+                        pageNames[i]
+                    );
+
+
+                /*
+                 * Название.
+                 */
+
+                const title =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                title.className =
+                    "page-title";
+
+
+                title.textContent =
+                    formatted.title;
+
+
+                pageName.appendChild(
+                    title
+                );
+
+
+                /*
+                 * ID.
+                 */
+
+                if (
+                    formatted.id
+                ) {
+
+                    const id =
+                        document.createElement(
+                            "span"
+                        );
+
+
+                    id.className =
+                        "page-id";
+
+
+                    id.textContent =
+                        formatted.id;
+
+
+                    pageName.appendChild(
+                        id
+                    );
+
+                }
+
+
+                /*
+                 * Категория.
+                 */
+
+                const category =
+                    pageCategories[i];
+
+
+                if (category) {
+
+                    const categoryElement =
+                        document.createElement(
+                            "span"
+                        );
+
+
+                    categoryElement.className =
+                        "page-category";
+
+
+                    categoryElement.textContent =
+                        category;
+
+
+                    pageName.appendChild(
+                        categoryElement
+                    );
+
+                }
+
+            }
+
+            else {
+
+                /*
+                 * Если названия нет,
+                 * показываем номер PDF.
+                 */
+
+                pageName.innerHTML =
+                    '<span class="page-number">' +
+                    i +
+                    '</span>';
+
+            }
+
+
+            pageInfo.appendChild(
+                pageName
+            );
+
+
+            /*
+             * Кнопка PIN.
+             */
+
+            const pinButton =
+                document.createElement(
+                    "button"
+                );
+
+
+            pinButton.className =
+                "pin-button";
+
+
+            pinButton.type =
+                "button";
+
+
+            pinButton.title =
+                pinnedPages.has(i)
+                    ? "Открепить страницу"
+                    : "Закрепить страницу";
+
+
+            pinButton.textContent =
+                "📌";
+
+
+            pinButton.addEventListener(
+                "click",
+                function (event) {
+
+                    event.stopPropagation();
+
+
+                    togglePinnedPage(
+                        i,
+                        pageItem,
+                        pinButton
+                    );
+
+                }
+            );
+
+
+            /*
+             * Открытие страницы.
+             */
+
+            pageItem.addEventListener(
+                "click",
+                function () {
+
+                    selectPage(
+                        i
+                    );
+
+                }
+            );
+
+
+            pageItem.appendChild(
+                pageInfo
+            );
+
+
+            pageItem.appendChild(
+                pinButton
+            );
+
+
+            pageList.appendChild(
+                pageItem
+            );
+
+        }
+
+
+        /*
+         * Если ничего не найдено.
+         */
+
+        if (
+            visibleCount === 0
+        ) {
+
+            const noResults =
+                document.createElement(
+                    "div"
+                );
+
+
+            noResults.className =
+                "no-results";
+
+
+            if (
+                currentSearch
+            ) {
+
+                noResults.innerHTML =
+                    "Ничего не найдено.<br><br>" +
+                    "Попробуйте изменить запрос.";
+
+            }
+
+            else {
+
+                noResults.textContent =
+                    "В этой категории нет страниц.";
+
+            }
+
+
+            pageList.appendChild(
+                noResults
+            );
+
+        }
+
+
+        updatePagesTitle();
+
+
+        updatePageListActiveState();
+
+    }
+
+
+
+    /* =====================================
+       ПЕРЕКЛЮЧЕНИЕ КАТЕГОРИИ
+       ===================================== */
+
+    function setCategory(
+        category
+    ) {
+
+        currentCategory =
+            category;
+
+
+        /*
+         * Обновляем активную кнопку.
+         */
+
+        categoryButtons.forEach(
+            function (button) {
+
+                if (
+                    button.dataset.category ===
+                    category
+                ) {
+
+                    button.classList.add(
+                        "active"
+                    );
+
+                }
+
+                else {
+
+                    button.classList.remove(
+                        "active"
+                    );
+
+                }
+
+            }
+        );
+
+
+        /*
+         * Перерисовываем список.
+         */
+
+        if (
+            pdfDocument
+        ) {
+
+            createPageList(
+                pdfDocument.numPages
+            );
+
+        }
+
+    }
+
+
+
+    /* =====================================
+       ПОИСК
+       ===================================== */
+
+    chartSearch.addEventListener(
+        "input",
+        function () {
+
+            currentSearch =
+                this.value
+                    .trim()
+                    .toLowerCase();
+
+
+            if (
+                pdfDocument
+            ) {
+
+                createPageList(
+                    pdfDocument.numPages
+                );
+
+            }
+
+        }
+    );
+
+
+
+    /* =====================================
+       КНОПКИ КАТЕГОРИЙ
+       ===================================== */
+
+    categoryButtons.forEach(
+        function (button) {
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    setCategory(
+                        this.dataset.category
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+
+    /* =====================================
+       ЗАКРЕПИТЬ / ОТКРЕПИТЬ
+       ===================================== */
+
+    function togglePinnedPage(
+        pageNumber,
+        pageItem,
+        pinButton
+    ) {
+
+        if (
+            pinnedPages.has(
+                pageNumber
+            )
+        ) {
+
+            pinnedPages.delete(
+                pageNumber
+            );
+
+
+            pageItem.classList.remove(
+                "pinned"
+            );
+
+
+            pinButton.title =
+                "Закрепить страницу";
+
+        }
+
+        else {
+
+            pinnedPages.add(
+                pageNumber
+            );
+
+
+            pageItem.classList.add(
+                "pinned"
+            );
+
+
+            pinButton.title =
+                "Открепить страницу";
+
+        }
+
+
+        savePinnedPages();
+
+    }
+
+
+
+    /* =====================================
+       АКТИВНАЯ СТРАНИЦА
+       ===================================== */
+
+    function updatePageListActiveState() {
+
+        const items =
+            pageList.querySelectorAll(
+                ".page-item"
+            );
+
+
+        items.forEach(
+            function (item) {
+
+                const pageNumber =
+                    Number(
+                        item.dataset.page
+                    );
+
+
+                if (
+                    pageNumber ===
+                    currentPage
+                ) {
+
+                    item.classList.add(
+                        "active"
+                    );
+
+                }
+
+                else {
+
+                    item.classList.remove(
+                        "active"
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+
+
+    /* =====================================
+       ПРОКРУТКА К ТЕКУЩЕЙ
+       ===================================== */
+
+    function scrollToCurrentPage() {
+
+        const item =
+            pageList.querySelector(
+                '[data-page="' +
+                currentPage +
+                '"]'
+            );
+
+
+        if (!item) {
+
+            return;
+        }
+
+
+        item.scrollIntoView({
+
+            behavior: "smooth",
+
+            block: "nearest"
+
+        });
+
+    }
+
+
+
+    /* =====================================
+       ВЫБОР СТРАНИЦЫ
+       ===================================== */
+
+    function selectPage(
+        pageNumber
+    ) {
+
+        if (!pdfDocument) {
+
+            return;
+        }
+
+
+        /*
+         * При переходе на другую страницу
+         * сбрасываем ручную поправку поворота.
+         *
+         * ВАЖНО:
+         * сбрасываем её ДО изменения currentPage,
+         * чтобы ручной поворот предыдущей страницы
+         * никогда не переносился на новую.
+         */
+        if (currentPage !== pageNumber) {
+
+            manualRotation = 0;
+
+        }
+
+
+        currentPage =
+            pageNumber;
+
+
+        updatePageListActiveState();
+
+
+        showPage(
+            pageNumber
+        );
+
+    }
+
+
+
+    /* =====================================
+       ОТКРЫТИЕ PDF
+       ===================================== */
+
+    async function openPDF(
+        pdfFile
+    ) {
+
+        try {
+
+            currentPdfName =
+                pdfFile.name;
+
+
+            /*
+             * Загружаем ASOC.
+             */
+
+            await loadAssociationFile(
+                pdfFile
+            );
+
+
+            /*
+             * Загружаем PIN.
+             */
+
+            loadPinnedPages();
+
+
+            /*
+             * PDF.
+             */
+
+            const arrayBuffer =
+                await pdfFile.arrayBuffer();
+
+
+            const typedArray =
+                new Uint8Array(
+                    arrayBuffer
+                );
+
+
+            pdfDocument =
+                await pdfjsLib
+                    .getDocument(
+                        typedArray
+                    )
+                    .promise;
+
+
+            console.log(
+                "PDF открыт.",
+                "Страниц:",
+                pdfDocument.numPages
+            );
+
+
+            uploadBlock.style.display =
+                "none";
+
+
+            pageBlock.style.display =
+                "flex";
+
+
+            currentPage = 1;
+
+
+            /*
+             * По умолчанию TAXI.
+             *
+             * Если TAXI в ASOC отсутствует,
+             * список будет пустым.
+             *
+             * Поэтому автоматически
+             * переключаемся на первую
+             * существующую категорию.
+             */
+
+            const availableCategories =
+                Object.values(
+                    pageCategories
+                );
+
+
+            if (
+                !availableCategories.includes(
+                    currentCategory
+                )
+            ) {
+
+                const firstCategory =
+                    [
+                        "STAR",
+                        "APP",
+                        "TAXI",
+                        "SID",
+                        "REF"
+                    ].find(
+                        function (category) {
+
+                            return availableCategories.includes(
+                                category
+                            );
+
+                        }
+                    );
+
+
+                if (firstCategory) {
+
+                    currentCategory =
+                        firstCategory;
+
+                }
+
+                else {
+
+                    currentCategory =
+                        "ALL";
+
+                }
+
+            }
+
+
+            /*
+             * Поиск очищаем.
+             */
+
+            currentSearch = "";
+
+            chartSearch.value = "";
+
+
+            /*
+             * Обновляем кнопку категории.
+             */
+
+            categoryButtons.forEach(
+                function (button) {
+
+                    button.classList.toggle(
+
+                        "active",
+
+                        button.dataset.category ===
+                        currentCategory
+
+                    );
+
+                }
+            );
+
+
+            /*
+             * Список.
+             */
+
+            createPageList(
+                pdfDocument.numPages
+            );
+
+
+            /*
+             * Сбрасываем поворот.
+             *
+             * При первом показе страницы
+             * orientation будет определён автоматически.
+             */
+
+            rotation = 0;
+            automaticRotation = 0;
+            manualRotation = 0;
+
+
+            /*
+             * Сбрасываем ночной режим.
+             */
+
+            inverted = false;
+
+
+            canvas.style.filter =
+                "none";
+
+
+            invertButton.textContent =
+                "☾ Ночная версия";
+
+
+            /*
+             * Показываем первую страницу.
+             */
+
+            await showPage(
+                1
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Ошибка открытия PDF:",
+                error
+            );
+
+
+            alert(
+                "Не удалось открыть PDF-файл."
+            );
+
+        }
+
+    }
+
+
+
+    /* =====================================
+       ВЫБОР PDF
+       ===================================== */
+
+    pdfInput.addEventListener(
+        "change",
+        async function () {
+
+            if (
+                !this.files ||
+                this.files.length === 0
+            ) {
+
+                return;
+            }
+
+
+            const pdfFile =
+                this.files[0];
+
+
+            await openPDF(
+                pdfFile
+            );
+
+        }
+    );
+
+
+
+    /* =====================================
+       РАСЧЁТ МАСШТАБА
+       ===================================== */
+
+    async function calculateFitZoom(
+        pageNumber
+    ) {
+
+        const page =
+            await pdfDocument.getPage(
+                pageNumber
+            );
+
+
+        const viewport =
+            page.getViewport({
+
+                scale: 1,
+
+                rotation:
+                    rotation
+
+            });
+
+
+        const viewerWidth =
+            viewer.clientWidth;
+
+
+        const viewerHeight =
+            viewer.clientHeight;
+
+
+        const padding = 40;
+
+
+        const scaleX =
+            (
+                viewerWidth -
+                padding
+            ) /
+            viewport.width;
+
+
+        const scaleY =
+            (
+                viewerHeight -
+                padding
+            ) /
+            viewport.height;
+
+
+        let fitZoom =
+            Math.min(
+                scaleX,
+                scaleY
+            );
+
+
+        fitZoom =
+            Math.max(
+
+                MIN_ZOOM,
+
+                Math.min(
+                    MAX_ZOOM,
+                    fitZoom
+                )
+
+            );
+
+
+        return fitZoom;
+
+    }
+
+
+
+    /* =====================================
+       АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ ПОВОРОТА
+       ПО ТЕКСТУ
+       ===================================== */
+
+    async function detectTextRotation(pageNumber) {
+
+        if (!pdfDocument) {
+            return 0;
+        }
+
+        try {
+
+            const page =
+                await pdfDocument.getPage(
+                    pageNumber
+                );
+
+            const textContent =
+                await page.getTextContent();
+
+
+            /*
+             * Вес текста считаем по количеству
+             * символов. Поэтому длинная строка
+             * влияет сильнее, чем короткая.
+             */
+
+            const orientationWeight = {
+                0: 0,
+                90: 0,
+                180: 0,
+                270: 0
+            };
+
+
+            let totalWeight = 0;
+
+
+            for (
+                const item of textContent.items
+            ) {
+
+                if (
+                    !item ||
+                    !item.str ||
+                    !item.str.trim() ||
+                    !item.transform ||
+                    item.transform.length < 4
+                ) {
+                    continue;
+                }
+
+
+                const text =
+                    item.str.trim();
+
+
+                /*
+                 * PDF.js transform:
+                 *
+                 * [a, b, c, d, e, f]
+                 *
+                 * Угол направления текста
+                 * определяется по a/b.
+                 */
+
+                let angle =
+                    Math.atan2(
+                        item.transform[1],
+                        item.transform[0]
+                    ) *
+                    180 /
+                    Math.PI;
+
+
+                if (angle < 0) {
+                    angle += 360;
+                }
+
+
+                /*
+                 * Приводим угол к ближайшему
+                 * из 0 / 90 / 180 / 270.
+                 */
+
+                const normalizedAngle =
+                    (
+                        Math.round(
+                            angle / 90
+                        ) * 90
+                    ) % 360;
+
+
+                let orientation =
+                    normalizedAngle;
+
+
+                /*
+                 * Вес = количество символов.
+                 * Минимум 1, чтобы короткие элементы
+                 * тоже учитывались.
+                 */
+
+                const weight =
+                    Math.max(
+                        1,
+                        text.length
+                    );
+
+
+                if (
+                    orientation === 0
+                ) {
+                    orientationWeight[0] += weight;
+                }
+
+                else if (
+                    orientation === 90
+                ) {
+                    orientationWeight[90] += weight;
+                }
+
+                else if (
+                    orientation === 180
+                ) {
+                    orientationWeight[180] += weight;
+                }
+
+                else if (
+                    orientation === 270
+                ) {
+                    orientationWeight[270] += weight;
+                }
+
+
+                totalWeight += weight;
+
+            }
+
+
+            if (
+                totalWeight === 0
+            ) {
+
+                console.log(
+                    "Автоповорот: текст не найден."
+                );
+
+                return 0;
+            }
+
+
+            /*
+             * Находим преобладающую ориентацию.
+             */
+
+            let dominantAngle = 0;
+            let dominantWeight = 0;
+
+
+            for (
+                const angle of [0, 90, 180, 270]
+            ) {
+
+                if (
+                    orientationWeight[angle] >
+                    dominantWeight
+                ) {
+
+                    dominantWeight =
+                        orientationWeight[angle];
+
+                    dominantAngle =
+                        angle;
+
+                }
+
+            }
+
+
+            const dominantPercent =
+                (
+                    dominantWeight /
+                    totalWeight
+                ) * 100;
+
+
+            console.log(
+                "Ориентация текста:",
+                {
+                    horizontal:
+                        (
+                            orientationWeight[0] /
+                            totalWeight *
+                            100
+                        ).toFixed(1) + "%",
+
+                    right90:
+                        (
+                            orientationWeight[90] /
+                            totalWeight *
+                            100
+                        ).toFixed(1) + "%",
+
+                    upsideDown:
+                        (
+                            orientationWeight[180] /
+                            totalWeight *
+                            100
+                        ).toFixed(1) + "%",
+
+                    left90:
+                        (
+                            orientationWeight[270] /
+                            totalWeight *
+                            100
+                        ).toFixed(1) + "%",
+
+                    dominantAngle:
+                        dominantAngle,
+
+                    dominantPercent:
+                        dominantPercent.toFixed(1) + "%"
+                }
+            );
+
+
+            /*
+             * Чтобы случайный вертикальный текст
+             * (например, подписи сбоку) не заставлял
+             * поворачивать всю карту, используем
+             * порог 60%.
+             */
+
+            const MIN_TEXT_ROTATION_PERCENT = 60;
+
+
+            if (
+                dominantAngle === 90 &&
+                dominantPercent >=
+                    MIN_TEXT_ROTATION_PERCENT
+            ) {
+
+                /*
+                 * Текст повернут на +90°.
+                 * Чтобы сделать его горизонтальным,
+                 * страницу поворачиваем на -90° = 270°.
+                 */
+
+                return 90;
+            }
+
+
+            if (
+                dominantAngle === 270 &&
+                dominantPercent >=
+                    MIN_TEXT_ROTATION_PERCENT
+            ) {
+
+                /*
+                 * Текст повернут на -90°.
+                 * Страницу поворачиваем на +90°.
+                 */
+
+                return 270;
+            }
+
+
+            if (
+                dominantAngle === 180 &&
+                dominantPercent >=
+                    MIN_TEXT_ROTATION_PERCENT
+            ) {
+
+                /*
+                 * Если подавляющая часть текста имеет направление 180°,
+                 * страница физически перевёрнута вверх ногами.
+                 *
+                 * Поэтому разворачиваем её ещё на 180°.
+                 */
+                return 180;
+            }
+
+
+            return 0;
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "Не удалось определить ориентацию текста:",
+                error
+            );
+
+            return 0;
+
+        }
+
+    }
+
+
+
+    /* =====================================
+       ПОКАЗ СТРАНИЦЫ
+       ===================================== */
+
+    async function showPage(
+        pageNumber
+    ) {
+
+        if (!pdfDocument) {
+
+            return;
+        }
+
+
+        /*
+         * Переход на другую страницу и сброс ручного
+         * поворота обрабатываются в selectPage().
+         *
+         * Здесь manualRotation НЕ сбрасываем, потому что
+         * showPage() вызывается также после нажатия кнопок
+         * поворота и при изменении размера окна.
+         */
+
+        currentPage =
+            pageNumber;
+
+
+        updatePageListActiveState();
+
+
+        /*
+         * Если это обычное открытие страницы,
+         * определяем ориентацию текста автоматически.
+         *
+         * manualRotation сохраняет поправку
+         * только для текущего чарта.
+         */
+        automaticRotation =
+            await detectTextRotation(
+                pageNumber
+            );
+
+
+        rotation =
+            (
+                automaticRotation +
+                manualRotation
+            ) % 360;
+
+
+        if (rotation < 0) {
+            rotation += 360;
+        }
+
+
+        if (animationFrame) {
+
+            cancelAnimationFrame(
+                animationFrame
+            );
+
+            animationFrame = null;
+
+        }
+
+
+        zoom =
+            await calculateFitZoom(
+                pageNumber
+            );
+
+
+        renderedZoom =
+            zoom;
+
+
+        targetZoom =
+            zoom;
+
+
+        const page =
+            await pdfDocument.getPage(
+                pageNumber
+            );
+
+
+        const viewport =
+            page.getViewport({
+
+                scale:
+                    renderedZoom,
+
+                rotation:
+                    rotation
+
+            });
+
+
+        canvas.width =
+            viewport.width;
+
+
+        canvas.height =
+            viewport.height;
+
+
+        offsetX =
+            (
+                viewer.clientWidth -
+                canvas.width
+            ) / 2;
+
+
+        offsetY =
+            (
+                viewer.clientHeight -
+                canvas.height
+            ) / 2;
+
+
+        targetOffsetX =
+            offsetX;
+
+
+        targetOffsetY =
+            offsetY;
+
+
+        updateCanvas();
+
+
+        await page.render({
+
+            canvasContext:
+                ctx,
+
+            viewport:
+                viewport
+
+        }).promise;
+
+
+        scrollToCurrentPage();
+
+    }
+
+
+
+    /* =====================================
+       CANVAS
+       ===================================== */
+
+    function updateCanvas() {
+
+        const visualScale =
+            zoom /
+            renderedZoom;
+
+
+        canvas.style.transform =
+            "translate3d(" +
+
+            offsetX +
+
+            "px, " +
+
+            offsetY +
+
+            "px, 0) " +
+
+            "scale(" +
+
+            visualScale +
+
+            ")";
+
+    }
+
+
+
+    /* =====================================
+       ПЛАВНАЯ АНИМАЦИЯ
+       ===================================== */
+
+    function startAnimation() {
+
+        if (animationFrame) {
+
+            return;
+        }
+
+
+        function animate() {
+
+            const smooth =
+                0.13;
+
+
+            const zoomDifference =
+                targetZoom -
+                zoom;
+
+
+            const xDifference =
+                targetOffsetX -
+                offsetX;
+
+
+            const yDifference =
+                targetOffsetY -
+                offsetY;
+
+
+            zoom +=
+                zoomDifference *
+                smooth;
+
+
+            offsetX +=
+                xDifference *
+                smooth;
+
+
+            offsetY +=
+                yDifference *
+                smooth;
+
+
+            updateCanvas();
+
+
+            if (
+
+                Math.abs(
+                    zoomDifference
+                ) > 0.0005 ||
+
+                Math.abs(
+                    xDifference
+                ) > 0.1 ||
+
+                Math.abs(
+                    yDifference
+                ) > 0.1
+
+            ) {
+
+                animationFrame =
+                    requestAnimationFrame(
+                        animate
+                    );
+
+            }
+
+            else {
+
+                zoom =
+                    targetZoom;
+
+
+                offsetX =
+                    targetOffsetX;
+
+
+                offsetY =
+                    targetOffsetY;
+
+
+                updateCanvas();
+
+
+                animationFrame =
+                    null;
+
+            }
+
+        }
+
+
+        animationFrame =
+            requestAnimationFrame(
+                animate
+            );
+
+    }
+
+
+
+    /* =====================================
+       ZOOM КОЛЕСОМ
+       ===================================== */
+
+    viewer.addEventListener(
+        "wheel",
+        function (event) {
+
+            event.preventDefault();
+
+
+            if (!pdfDocument) {
+
+                return;
+            }
+
+
+            const rect =
+                viewer.getBoundingClientRect();
+
+
+            const mouseX =
+                event.clientX -
+                rect.left;
+
+
+            const mouseY =
+                event.clientY -
+                rect.top;
+
+
+            const pdfX =
+                (
+                    mouseX -
+                    targetOffsetX
+                ) /
+                targetZoom;
+
+
+            const pdfY =
+                (
+                    mouseY -
+                    targetOffsetY
+                ) /
+                targetZoom;
+
+
+            const zoomFactor =
+                Math.exp(
+                    -event.deltaY *
+                    0.0008
+                );
+
+
+            let newZoom =
+                targetZoom *
+                zoomFactor;
+
+
+            newZoom =
+                Math.max(
+
+                    MIN_ZOOM,
+
+                    Math.min(
+                        MAX_ZOOM,
+                        newZoom
+                    )
+
+                );
+
+
+            if (
+                newZoom ===
+                targetZoom
+            ) {
+
+                return;
+            }
+
+
+            targetZoom =
+                newZoom;
+
+
+            targetOffsetX =
+                mouseX -
+                pdfX *
+                targetZoom;
+
+
+            targetOffsetY =
+                mouseY -
+                pdfY *
+                targetZoom;
+
+
+            startAnimation();
+
+
+            clearTimeout(
+                renderTimer
+            );
+
+
+            renderTimer =
+                setTimeout(
+                    renderHighQualityPage,
+                    150
+                );
+
+        },
+        {
+            passive: false
+        }
+    );
+
+
+
+    /* =====================================
+       ВЫСОКОКАЧЕСТВЕННЫЙ РЕНДЕР
+       ===================================== */
+
+    async function renderHighQualityPage() {
+
+        if (!pdfDocument) {
+
+            return;
+        }
+
+
+        const pageNumber =
+            currentPage;
+
+
+        const newZoom =
+            targetZoom;
+
+
+        const newOffsetX =
+            targetOffsetX;
+
+
+        const newOffsetY =
+            targetOffsetY;
+
+
+        const page =
+            await pdfDocument.getPage(
+                pageNumber
+            );
+
+
+        const viewport =
+            page.getViewport({
+
+                scale:
+                    newZoom,
+
+                rotation:
+                    rotation
+
+            });
+
+
+        canvas.width =
+            viewport.width;
+
+
+        canvas.height =
+            viewport.height;
+
+
+        renderedZoom =
+            newZoom;
+
+
+        zoom =
+            newZoom;
+
+
+        offsetX =
+            newOffsetX;
+
+
+        offsetY =
+            newOffsetY;
+
+
+        targetZoom =
+            newZoom;
+
+
+        targetOffsetX =
+            newOffsetX;
+
+
+        targetOffsetY =
+            newOffsetY;
+
+
+        updateCanvas();
+
+
+        await page.render({
+
+            canvasContext:
+                ctx,
+
+            viewport:
+                viewport
+
+        }).promise;
+
+    }
+
+
+
+    /* =====================================
+       ПОВОРОТ
+       ===================================== */
+
+    rotateLeftButton.addEventListener(
+        "click",
+        function () {
+
+            if (!pdfDocument) {
+
+                return;
+            }
+
+
+            manualRotation -= 90;
+
+
+            if (
+                manualRotation < 0
+            ) {
+
+                manualRotation = 270;
+            }
+
+
+            rotation =
+                (
+                    automaticRotation +
+                    manualRotation
+                ) % 360;
+
+
+            showPage(
+                currentPage
+            );
+
+        }
+    );
+
+
+    rotateRightButton.addEventListener(
+        "click",
+        function () {
+
+            if (!pdfDocument) {
+
+                return;
+            }
+
+
+            manualRotation += 90;
+
+
+            if (
+                manualRotation >= 360
+            ) {
+
+                manualRotation = 0;
+            }
+
+
+            rotation =
+                (
+                    automaticRotation +
+                    manualRotation
+                ) % 360;
+
+
+            showPage(
+                currentPage
+            );
+
+        }
+    );
+
+
+
+    /* =====================================
+       НОЧНОЙ РЕЖИМ
+       ===================================== */
+
+    invertButton.addEventListener(
+        "click",
+        function () {
+
+            inverted =
+                !inverted;
+
+
+            if (inverted) {
+
+                canvas.style.filter =
+                    "invert(1)";
+
+
+                invertButton.textContent =
+                    "☀ Обычная версия";
+
+            }
+
+            else {
+
+                canvas.style.filter =
+                    "none";
+
+
+                invertButton.textContent =
+                    "☾ Ночная версия";
+
+            }
+
+        }
+    );
+
+
+
+    /* =====================================
+       ПЕРЕМЕЩЕНИЕ ЛКМ
+       ===================================== */
+
+    viewer.addEventListener(
+        "mousedown",
+        function (event) {
+
+            if (
+                event.button !== 0
+            ) {
+
+                return;
+            }
+
+
+            if (!pdfDocument) {
+
+                return;
+            }
+
+
+            isDragging =
+                true;
+
+
+            dragStartX =
+                event.clientX;
+
+
+            dragStartY =
+                event.clientY;
+
+
+            dragOffsetX =
+                targetOffsetX;
+
+
+            dragOffsetY =
+                targetOffsetY;
+
+
+            viewer.classList.add(
+                "dragging"
+            );
+
+
+            event.preventDefault();
+
+        }
+    );
+
+
+
+    /* =====================================
+       ПЕРЕМЕЩЕНИЕ
+       ===================================== */
+
+    window.addEventListener(
+        "mousemove",
+        function (event) {
+
+            if (!isDragging) {
+
+                return;
+            }
+
+
+            const dx =
+                event.clientX -
+                dragStartX;
+
+
+            const dy =
+                event.clientY -
+                dragStartY;
+
+
+            targetOffsetX =
+                dragOffsetX +
+                dx;
+
+
+            targetOffsetY =
+                dragOffsetY +
+                dy;
+
+
+            startAnimation();
+
+        }
+    );
+
+
+
+    /* =====================================
+       ОТПУСКАНИЕ ЛКМ
+       ===================================== */
+
+    window.addEventListener(
+        "mouseup",
+        function () {
+
+            isDragging =
+                false;
+
+
+            viewer.classList.remove(
+                "dragging"
+            );
+
+        }
+    );
+
+
+
+    window.addEventListener(
+        "blur",
+        function () {
+
+            isDragging =
+                false;
+
+
+            viewer.classList.remove(
+                "dragging"
+            );
+
+        }
+    );
+
+
+
+    /* =====================================
+       ВЫБРАТЬ ДРУГОЙ PDF
+       ===================================== */
+
+    changeFile.addEventListener(
+        "click",
+        function () {
+
+            pdfDocument = null;
+
+
+            pageNames = {};
+
+            pageCategories = {};
+
+
+            pinnedPages =
+                new Set();
+
+
+            currentPdfName =
+                "";
+
+
+            currentPage =
+                1;
+
+
+            currentCategory =
+                "TAXI";
+
+
+            currentSearch =
+                "";
+
+
+            chartSearch.value =
+                "";
+
+
+            categoryButtons.forEach(
+                function (button) {
+
+                    button.classList.toggle(
+
+                        "active",
+
+                        button.dataset.category ===
+                        "TAXI"
+
+                    );
+
+                }
+            );
+
+
+            rotation = 0;
+            automaticRotation = 0;
+            manualRotation = 0;
+
+            inverted = false;
+
+            zoom = 1;
+
+            renderedZoom = 1;
+
+            targetZoom = 1;
+
+            offsetX = 0;
+
+            offsetY = 0;
+
+            targetOffsetX = 0;
+
+            targetOffsetY = 0;
+
+
+            if (animationFrame) {
+
+                cancelAnimationFrame(
+                    animationFrame
+                );
+
+                animationFrame = null;
+
+            }
+
+
+            clearTimeout(
+                renderTimer
+            );
+
+
+            ctx.clearRect(
+
+                0,
+                0,
+
+                canvas.width,
+                canvas.height
+
+            );
+
+
+            canvas.width = 0;
+
+            canvas.height = 0;
+
+
+            canvas.style.filter =
+                "none";
+
+
+            pageList.innerHTML =
+                "";
+
+
+            pagesTitle.textContent =
+                "TAXI";
+
+
+            invertButton.textContent =
+                "☾ Ночная версия";
+
+
+            pageBlock.style.display =
+                "none";
+
+
+            uploadBlock.style.display =
+                "block";
+
+
+            pdfInput.value = "";
+
+        }
+    );
+
+
+
+    /* =====================================
+       ИЗМЕНЕНИЕ РАЗМЕРА ОКНА
+       ===================================== */
+
+    let resizeTimer = null;
+
+
+    window.addEventListener(
+        "resize",
+        function () {
+
+            if (!pdfDocument) {
+
+                return;
+            }
+
+
+            clearTimeout(
+                resizeTimer
+            );
+
+
+            resizeTimer =
+                setTimeout(
+                    function () {
+
+                        showPage(
+                            currentPage
+                        );
+
+                    },
+                    150
+                );
+
+        }
+    );
+
+
+</script>
+
+
+</body>
+
+</html>
