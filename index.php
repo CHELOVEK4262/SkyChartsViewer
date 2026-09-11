@@ -1,3 +1,43 @@
+<?php
+// Автоматически получаем список PDF из папки charts.
+// Directory listing в браузере не используется, поэтому 403 на /charts/ не мешает работе.
+$chartsDir = __DIR__ . DIRECTORY_SEPARATOR . 'charts';
+$asocDir = __DIR__ . DIRECTORY_SEPARATOR . 'asoc';
+$serverCharts = [];
+
+if (is_dir($chartsDir)) {
+    foreach (scandir($chartsDir) as $file) {
+        if ($file === '.' || $file === '..') continue;
+        $fullPath = $chartsDir . DIRECTORY_SEPARATOR . $file;
+        if (!is_file($fullPath)) continue;
+        if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) !== 'pdf') continue;
+
+        $base = pathinfo($file, PATHINFO_FILENAME);
+        if (!preg_match('/^[A-Za-z0-9]{4}$/', $base)) continue;
+
+        $code = strtoupper($base);
+        $hasAsoc = false;
+        foreach ([$base . '.txt', $code . '.txt', strtolower($base) . '.txt'] as $asocFile) {
+            if (is_file($asocDir . DIRECTORY_SEPARATOR . $asocFile)) {
+                $hasAsoc = true;
+                break;
+            }
+        }
+
+        $serverCharts[] = [
+            'name' => $file,
+            'code' => $code,
+            'hasAsoc' => $hasAsoc,
+            'pdfUrl' => './charts/' . rawurlencode($file),
+            'asocUrl' => $hasAsoc ? './asoc/' . rawurlencode($code . '.txt') : null
+        ];
+    }
+}
+
+usort($serverCharts, function ($a, $b) {
+    return strcmp($a['code'], $b['code']);
+});
+?>
 <!DOCTYPE html>
 <html lang="ru">
 
@@ -923,14 +963,41 @@
            УЗКИЙ ЭКРАН
            ===================================== */
 
-        @media (max-width: 700px) {
+        .mobile-toolbar,.mobile-backdrop{display:none}
 
-            .sidebar {
-                width: 260px;
-
-                min-width: 260px;
+        @media (max-width:700px){
+            .app{position:relative;height:100dvh}
+            .sidebar{
+                position:fixed;z-index:1000;left:0;top:0;bottom:0;
+                width:min(88vw,350px);min-width:0;height:100dvh;
+                transform:translateX(-105%);transition:transform .22s ease;
+                box-shadow:8px 0 25px rgba(0,0,0,.35)
             }
-
+            .app.mobile-menu-open .sidebar{transform:translateX(0)}
+            .viewer{width:100%;height:100dvh}
+            .mobile-toolbar{
+                position:fixed;z-index:900;left:10px;right:10px;top:10px;
+                height:44px;display:flex;align-items:center;
+                justify-content:space-between;gap:6px;pointer-events:none
+            }
+.mobile-toolbar button,.mobile-toolbar-title{
+                pointer-events:auto;height:42px;min-width:42px;border:1px solid rgba(255,255,255,.25);
+                border-radius:8px;background:rgba(23,41,54,.92);color:#fff;
+                display:flex;align-items:center;justify-content:center;font-size:24px;
+                touch-action:manipulation;-webkit-tap-highlight-color:transparent
+            }
+            .mobile-toolbar-title{padding:0 10px;font-size:13px;font-weight:bold}
+            .mobile-backdrop{position:fixed;z-index:950;inset:0;background:rgba(0,0,0,.45);touch-action:none}
+            .app.mobile-menu-open .mobile-backdrop{display:block}
+            .top-button{min-height:44px}
+            .rotate-button{width:44px;height:40px}
+            #chartSearch{height:42px;font-size:14px}
+            .category-button{min-height:34px}
+            .page-item{min-height:64px}
+            .pin-button{width:54px;min-width:54px}
+            .airport-result{min-height:56px}
+            .app.initial .sidebar{position:relative;width:100%;min-width:0;transform:none;box-shadow:none}
+            .app.initial .mobile-toolbar,.app.initial .mobile-backdrop{display:none!important}
         }
 
     
@@ -1290,9 +1357,12 @@
         id="viewer"
     >
 
-        <canvas
-            id="pdfCanvas"
-        ></canvas>
+        <div class="mobile-toolbar" id="mobileToolbar">
+            <button type="button" id="mobileMenuButton" aria-label="Меню">☰</button>
+            <span class="mobile-toolbar-title">Просмотр</span>
+        </div>
+        <div class="mobile-backdrop" id="mobileBackdrop"></div>
+        <canvas id="pdfCanvas"></canvas>
 
     </main>
 
@@ -1391,6 +1461,10 @@
 
     const ctx =
         canvas.getContext("2d");
+
+    const mobileMenuButton=document.getElementById("mobileMenuButton");
+
+    const mobileBackdrop=document.getElementById("mobileBackdrop");
 
 
     const chartSearch =
@@ -1493,16 +1567,26 @@
      *     }
      * ]
      */
-    let availableCharts = [];
+    // Список PDF формируется PHP напрямую из папки /charts/.
+    // Никаких JSON-файлов и directory listing браузера не требуется.
+    const SERVER_CHARTS = <?php echo json_encode($serverCharts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+
+    let availableCharts = SERVER_CHARTS.map(function (chart) {
+        return Object.assign({}, chart);
+    });
 
     let chartFiles = new Map();
+
+    availableCharts.forEach(function (chart) {
+        chartFiles.set(chart.name, chart);
+    });
 
     /*
      * Пути к каталогам на сервере.
      * index.html находится рядом с папками charts и asoc.
      */
     const CHARTS_PATH = "./charts/";
-    const ASOC_PATH = "asoc/";
+    const ASOC_PATH = "./asoc/";
 
     let chartListRequestId = 0;
 
@@ -1624,47 +1708,34 @@
        ЗАГРУЗКА TXT ИЗ ASOC
        ===================================== */
 
-    async function loadAssociationFile(
-        pdfFileName
-    ) {
-
+    async function loadAssociationFile(pdfFileName) {
         pageNames = {};
         pageCategories = {};
-
-        const txtFileName =
-            getAssociationFileName(pdfFileName);
-
-        try {
-            let text = null;
-
-            const chart = chartFiles.get(pdfFileName);
-
-            if (chart && chart.asocUrl) {
-                const response = await fetch(chart.asocUrl, {
-                    cache: "no-store"
-                });
-
-                if (response.ok) {
-                    text = await response.text();
-                }
-            }
-
-            if (text === null) {
+        const chart = chartFiles.get(pdfFileName);
+        const base = pdfFileName.replace(/\.pdf$/i, "");
+        const urls = [];
+        if (chart && chart.asocUrl) urls.push(chart.asocUrl);
+        urls.push(
+            ASOC_PATH + encodeURIComponent(base + ".txt"),
+            ASOC_PATH + encodeURIComponent(base.toUpperCase() + ".txt"),
+            ASOC_PATH + encodeURIComponent(base.toLowerCase() + ".txt")
+        );
+        for (const url of [...new Set(urls)]) {
+            try {
+                const r = await fetch(url, {cache:"no-store"});
+                if (!r.ok) continue;
+                const text = await r.text();
+                if (/<html[\s>]/i.test(text) &&
+                    !/^\s*(REF|STAR|SID|TAXI|APP)\s*$/im.test(text)) continue;
+                const parsed = parseAssociationFile(text);
+                pageNames = parsed.names;
+                pageCategories = parsed.categories;
+                console.log("ASOC:", url, Object.keys(pageNames).length);
                 return;
-            }
-
-            const parsed = parseAssociationFile(text);
-            pageNames = parsed.names;
-            pageCategories = parsed.categories;
-
-        } catch (error) {
-            console.warn("Не удалось загрузить ASOC:", txtFileName, error);
-            pageNames = {};
-            pageCategories = {};
+            } catch(e) { console.warn("ASOC:", url, e); }
         }
+        console.log("ASOC не найден:", pdfFileName);
     }
-
-
     /* =====================================
        РАЗБОР ASOC
        ===================================== */
@@ -2848,6 +2919,7 @@
 
             if (app) {
                 app.classList.remove("initial");
+                app.classList.remove("mobile-menu-open");
             }
 
             uploadBlock.style.display =
@@ -2988,194 +3060,26 @@
        ===================================== */
 
     async function loadCharts() {
+        // Список уже получен PHP при загрузке страницы.
+        // Браузер больше не делает fetch('./charts/'), поэтому 403 не возникает.
+        availableCharts = SERVER_CHARTS.map(function (chart) {
+            return Object.assign({}, chart);
+        });
 
-        const requestId = ++chartListRequestId;
-
-        availableCharts = [];
         chartFiles = new Map();
+        availableCharts.forEach(function (chart) {
+            chartFiles.set(chart.name, chart);
+        });
 
-        chartSelect.innerHTML =
-            '<option value="">Загрузка списка чартов...</option>';
-        chartSelect.disabled = true;
-        openChartButton.disabled = true;
+        updateChartSelect();
 
-        try {
-
-            /*
-             * Важно: обычный браузер не умеет самостоятельно перечислять
-             * файлы в папке на сервере. Поэтому сервер должен показывать
-             * содержимое /charts/ как directory listing.
-             *
-             * Например:
-             *   /index.html
-             *   /charts/UUEE.pdf
-             *   /charts/KLAS.pdf
-             *   /asoc/UUEE.txt
-             *
-             * Никакого PHP или выбора папки здесь не используется.
-             */
-
-            const response = await fetch(CHARTS_PATH, {
-                cache: "no-store"
-            });
-
-            if (!response.ok) {
-                throw new Error(
-                    "Не удалось получить список /charts/ (HTTP " +
-                    response.status +
-                    ")"
-                );
-            }
-
-            const html = await response.text();
-            const parser = new DOMParser();
-            const documentFromServer = parser.parseFromString(
-                html,
-                "text/html"
-            );
-
-            const links =
-                Array.from(documentFromServer.querySelectorAll("a[href]"));
-
-            const foundNames = new Set();
-
-            links.forEach(function (link) {
-
-                const href = link.getAttribute("href") || "";
-
-                let fileName = "";
-
-                try {
-                    fileName =
-                        decodeURIComponent(
-                            href.split("?")[0].split("#")[0]
-                        )
-                            .split("/")
-                            .pop() || "";
-                } catch (_) {
-                    fileName =
-                        href.split("?")[0].split("#")[0]
-                            .split("/")
-                            .pop() || "";
-                }
-
-                if (!/^[A-Za-z0-9]{4}\.pdf$/i.test(fileName)) {
-                    return;
-                }
-
-                const code =
-                    fileName.replace(/\.pdf$/i, "").toUpperCase();
-
-                if (!/^[A-Z0-9]{4}$/.test(code)) {
-                    return;
-                }
-
-                if (foundNames.has(fileName.toLowerCase())) {
-                    return;
-                }
-
-                foundNames.add(fileName.toLowerCase());
-
-                const pdfUrl =
-                    CHARTS_PATH +
-                    encodeURIComponent(fileName);
-
-                /*
-                 * ASOC проверяем запросом HEAD.
-                 * Если HEAD запрещён сервером, пробуем GET.
-                 */
-                availableCharts.push({
-                    name: fileName,
-                    code: code,
-                    hasAsoc: false,
-                    pdfUrl: pdfUrl,
-                    asocUrl: null
-                });
-
-            });
-
-            if (requestId !== chartListRequestId) {
-                return;
-            }
-
-            availableCharts.sort(function (a, b) {
-                return a.code.localeCompare(b.code);
-            });
-
-            /*
-             * Определяем наличие соответствующего ASOC-файла.
-             * Promise.all выполняет проверки параллельно.
-             */
-            await Promise.all(
-                availableCharts.map(async function (chart) {
-
-                    const upperUrl =
-                        ASOC_PATH +
-                        encodeURIComponent(chart.code + ".txt");
-
-                    const lowerUrl =
-                        ASOC_PATH +
-                        encodeURIComponent(chart.code.toLowerCase() + ".txt");
-
-                    try {
-                        let asocResponse =
-                            await fetch(upperUrl, {
-                                method: "HEAD",
-                                cache: "no-store"
-                            });
-
-                        if (asocResponse.ok) {
-                            chart.hasAsoc = true;
-                            chart.asocUrl = upperUrl;
-                            return;
-                        }
-                    } catch (_) {}
-
-                    try {
-                        let asocResponse =
-                            await fetch(lowerUrl, {
-                                method: "HEAD",
-                                cache: "no-store"
-                            });
-
-                        if (asocResponse.ok) {
-                            chart.hasAsoc = true;
-                            chart.asocUrl = lowerUrl;
-                        }
-                    } catch (_) {}
-
-                })
-            );
-
-            availableCharts.forEach(function (chart) {
-                chartFiles.set(chart.name, chart);
-            });
-
-            updateChartSelect();
-
+        if (availableCharts.length) {
             chartInfo.innerHTML =
-                'Список чартов загружен с сервера. Найдено PDF: <b>' +
-                availableCharts.length +
-                '</b>.<br><br>' +
-                '★ — имеется файл ассоциаций в папке <code>asoc</code>.';
-
-        } catch (error) {
-
-            console.error("Не удалось загрузить список чартов:", error);
-
-            availableCharts = [];
-            chartFiles.clear();
-
-            chartSelect.innerHTML =
-                '<option value="">Не удалось загрузить чарты</option>';
-
-            chartSelect.disabled = true;
-            openChartButton.disabled = true;
-
+                'Список чартов загружен.<br><br>' +
+                'Найдено PDF: <b>' + availableCharts.length + '</b>.';
+        } else {
             chartInfo.innerHTML =
-                'Не удалось получить список файлов из <code>charts</code>.<br><br>' +
-                'Проверьте, что сервер разрешает просмотр содержимого папки ' +
-                '<code>/charts/</code> (Directory Listing).';
+                '<b>В папке charts не найдено PDF-файлов.</b>';
         }
     }
 
@@ -3188,29 +3092,40 @@
        ВАРИАНТЫ АЭРОПОРТОВ ПОД ПОЛЕМ ПОИСКА
        ===================================== */
 
-    const airportNames = {
-        "UMMS": "Minsk National Airport",
-        "UUEE": "Sheremetyevo International Airport",
-        "KLAS": "Harry Reid International Airport",
-        "UZTT": "Tolmachevo Airport",
-        "UGKO": "Kutaisi International Airport",
-        "KMDW": "Chicago Midway International Airport"
-    };
+    /*
+     * Коды берутся только из найденных PDF — списка аэропортов здесь нет.
+     */
+    function getAirportCodes() {
+        return [...new Set(availableCharts.map(c => c.code.toUpperCase()))];
+    }
 
-    const airportSuggestions =
-        document.getElementById("airportSuggestions");
+    const airportSuggestions = document.getElementById("airportSuggestions");
 
-    function getAirportName(code) {
-        return airportNames[code] || "Airport";
+    async function checkAirportPDF(code) {
+        const normalizedCode = code.trim().toUpperCase();
+        if (!/^[A-Z0-9]{4}$/.test(normalizedCode)) return false;
+
+        const fileName = normalizedCode + '.pdf';
+        const url = CHARTS_PATH + encodeURIComponent(fileName);
+
+        try {
+            // GET используется вместо HEAD, поскольку некоторые серверы
+            // запрещают HEAD, но разрешают обычную загрузку PDF.
+            const response = await fetch(url, {
+                method: 'GET',
+                cache: 'no-store',
+                headers: { 'Range': 'bytes=0-0' }
+            });
+
+            return response.ok || response.status === 206;
+        } catch (error) {
+            console.warn('Проверка аэропорта не удалась:', normalizedCode, error);
+            return false;
+        }
     }
 
     function renderAirportSuggestions() {
-
-        const code =
-            airportInput.value
-                .trim()
-                .toUpperCase();
-
+        const code = airportInput.value.trim().toUpperCase();
         airportSuggestions.innerHTML = "";
 
         if (!code) {
@@ -3218,113 +3133,111 @@
             return;
         }
 
-        /*
-         * Для поиска используем список PDF, если он уже загружен.
-         * Если список ещё загружается или Directory Listing недоступен,
-         * используем известные ICAO-коды из airportNames.
-         * Поэтому сообщение «Аэропорт не найден» не появляется
-         * преждевременно во время загрузки /charts/.
-         */
-        const codesFromCharts = availableCharts.map(function (chart) {
-            return chart.code.toUpperCase();
-        });
+        const matches = getAirportCodes().filter(c => c.startsWith(code));
 
-        const codes = Array.from(
-            new Set(
-                Object.keys(airportNames)
-                    .concat(codesFromCharts)
-            )
-        );
-
-        const matches = codes
-            .filter(function (airportCode) {
-                return airportCode.startsWith(code);
-            })
-            .sort();
-
-        if (!matches.length) {
+        // Если список уже содержит найденный аэропорт — показываем его.
+        if (matches.length) {
+            matches.slice(0, 20).forEach(c => {
+                const x = document.createElement("div");
+                x.className = "airport-result";
+                const main = document.createElement("div");
+                main.className = "airport-result-main";
+                const codeEl = document.createElement("span");
+                codeEl.className = "airport-result-code";
+                codeEl.textContent = c;
+                main.appendChild(codeEl);
+                x.appendChild(main);
+                x.onclick = async () => {
+                    airportSuggestions.style.display = "none";
+                    airportInput.value = c;
+                    await openAirportByCode(c);
+                };
+                airportSuggestions.appendChild(x);
+            });
             airportSuggestions.style.display = "block";
-
-            const empty =
-                document.createElement("div");
-
-            empty.className = "airport-no-results";
-            empty.textContent = "Аэропорт не найден";
-
-            airportSuggestions.appendChild(empty);
             return;
         }
 
-        matches.slice(0, 10).forEach(function (airportCode) {
+        if (code.length < 4) {
+            airportSuggestions.style.display = "block";
+            const x = document.createElement("div");
+            x.className = "airport-no-results";
+            x.textContent = "Введите полный код ICAO";
+            airportSuggestions.appendChild(x);
+            return;
+        }
 
-            const result =
-                document.createElement("div");
-
-            result.className = "airport-result";
-            result.title = "Открыть " + airportCode;
-
-            const main =
-                document.createElement("div");
-
-            main.className = "airport-result-main";
-
-            const codeElement =
-                document.createElement("span");
-
-            codeElement.className = "airport-result-code";
-            codeElement.textContent = airportCode;
-
-            main.appendChild(codeElement);
-            result.appendChild(main);
-
-            result.addEventListener("click", async function () {
-                airportSuggestions.style.display = "none";
-                airportInput.value = airportCode;
-                await openAirportByCode(airportCode);
-            });
-
-            airportSuggestions.appendChild(result);
-        });
-
+        // При полном ICAO-коде проверяем реальный PDF напрямую.
         airportSuggestions.style.display = "block";
+        const x = document.createElement("div");
+        x.className = "airport-no-results";
+        x.textContent = "Проверка " + code + "…";
+        airportSuggestions.appendChild(x);
+
+        checkAirportPDF(code).then(async exists => {
+            if (airportInput.value.trim().toUpperCase() !== code) return;
+
+            airportSuggestions.innerHTML = "";
+
+            const result = document.createElement("div");
+            result.className = exists ? "airport-result" : "airport-no-results";
+
+            if (exists) {
+                const main = document.createElement("div");
+                main.className = "airport-result-main";
+                const codeEl = document.createElement("span");
+                codeEl.className = "airport-result-code";
+                codeEl.textContent = code;
+                main.appendChild(codeEl);
+                result.appendChild(main);
+
+                result.onclick = async () => {
+                    airportSuggestions.style.display = "none";
+                    await openAirportByCode(code);
+                };
+
+                airportSuggestions.appendChild(result);
+                airportSuggestions.style.display = "block";
+
+                const chart = {
+                    name: code + '.pdf',
+                    code: code,
+                    hasAsoc: false,
+                    pdfUrl: CHARTS_PATH + encodeURIComponent(code + '.pdf'),
+                    asocUrl: null
+                };
+                availableCharts = [chart];
+                chartFiles.set(chart.name, chart);
+                updateChartSelect();
+            } else {
+                result.textContent = "Аэропорт " + code + " не найден";
+                airportSuggestions.appendChild(result);
+                airportSuggestions.style.display = "block";
+                updateChartSelect();
+            }
+        });
     }
 
-
-    /*
-     * Открытие аэропорта по ICAO-коду.
-     * Если список /charts/ ещё не успел загрузиться, PDF всё равно
-     * открывается напрямую по пути charts/XXXX.pdf.
-     */
     async function openAirportByCode(code) {
+        const normalizedCode = code.trim().toUpperCase();
+        if (!/^[A-Z0-9]{4}$/.test(normalizedCode)) return;
 
-        const normalizedCode =
-            code.trim().toUpperCase();
-
-        if (!/^[A-Z0-9]{4}$/.test(normalizedCode)) {
-            return;
-        }
-
-        let chart = availableCharts.find(function (item) {
-            return item.code === normalizedCode;
-        });
+        const name = normalizedCode + ".pdf";
+        let chart = chartFiles.get(name);
 
         if (!chart) {
-            const fileName = normalizedCode + ".pdf";
-
             chart = {
-                name: fileName,
+                name: name,
                 code: normalizedCode,
                 hasAsoc: false,
-                pdfUrl: CHARTS_PATH + encodeURIComponent(fileName),
+                pdfUrl: CHARTS_PATH + encodeURIComponent(name),
                 asocUrl: null
             };
-
-            chartFiles.set(fileName, chart);
+            chartFiles.set(name, chart);
         }
 
         await openPDF(chart.name);
     }
-
 
     function updateChartSelect() {
 
@@ -4008,25 +3921,47 @@
             });
 
 
-        canvas.width =
-            viewport.width;
+        const devicePixelRatio =
+            Math.min(
+                window.devicePixelRatio || 1,
+                2.5
+            );
 
+        canvas.width =
+            Math.ceil(viewport.width * devicePixelRatio);
 
         canvas.height =
-            viewport.height;
+            Math.ceil(viewport.height * devicePixelRatio);
+
+        canvas.style.width =
+            viewport.width + "px";
+
+        canvas.style.height =
+            viewport.height + "px";
+
+        ctx.setTransform(
+            devicePixelRatio,
+            0,
+            0,
+            devicePixelRatio,
+            0,
+            0
+        );
 
 
+        /* Центрируем по CSS-размеру canvas, а не по физическому
+           canvas.width/canvas.height, которые увеличены через DPR. */
         offsetX =
             (
                 viewer.clientWidth -
-                canvas.width
+                viewport.width
             ) / 2;
 
 
         offsetY =
             (
                 viewer.clientHeight -
-                canvas.height
+                viewport.height
             ) / 2;
 
 
@@ -4363,12 +4298,32 @@
             });
 
 
-        canvas.width =
-            viewport.width;
+        const devicePixelRatio =
+            Math.min(
+                window.devicePixelRatio || 1,
+                2.5
+            );
 
+        canvas.width =
+            Math.ceil(viewport.width * devicePixelRatio);
 
         canvas.height =
-            viewport.height;
+            Math.ceil(viewport.height * devicePixelRatio);
+
+        canvas.style.width =
+            viewport.width + "px";
+
+        canvas.style.height =
+            viewport.height + "px";
+
+        ctx.setTransform(
+            devicePixelRatio,
+            0,
+            0,
+            devicePixelRatio,
+            0,
+            0
+        );
 
 
         renderedZoom =
@@ -4665,6 +4620,177 @@
 
 
 
+
+    /* =====================================
+       СЕНСОРНОЕ УПРАВЛЕНИЕ
+       ===================================== */
+
+    mobileMenuButton?.addEventListener("click",()=>{
+        document.getElementById("app")?.classList.toggle("mobile-menu-open");
+    });
+    mobileBackdrop?.addEventListener("click",()=>{
+        document.getElementById("app")?.classList.remove("mobile-menu-open");
+    });
+
+    /*
+       На мобильных:
+       - 1 палец = перемещение страницы;
+       - 2 пальца = масштабирование + перемещение;
+       - никаких свайпов/перелистывания страниц.
+    */
+    let touchMode = "none";
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchLastX = 0;
+    let touchLastY = 0;
+    let touchStartZoom = 1;
+    let touchStartOffsetX = 0;
+    let touchStartOffsetY = 0;
+    let touchPinchDistance = 1;
+    let touchPinchCenterPdfX = 0;
+    let touchPinchCenterPdfY = 0;
+
+    function touchDistance(a, b) {
+        return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+    }
+
+    function touchCenter(a, b, rect) {
+        return {
+            x: (a.clientX + b.clientX) / 2 - rect.left,
+            y: (a.clientY + b.clientY) / 2 - rect.top
+        };
+    }
+
+    function startOneFinger(touch) {
+        touchMode = "pan";
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        touchLastX = touch.clientX;
+        touchLastY = touch.clientY;
+        touchStartZoom = targetZoom;
+        touchStartOffsetX = targetOffsetX;
+        touchStartOffsetY = targetOffsetY;
+        viewer.classList.add("dragging");
+    }
+
+    function startPinch(touches) {
+        const a = touches[0];
+        const b = touches[1];
+        const rect = viewer.getBoundingClientRect();
+        const center = touchCenter(a, b, rect);
+
+        touchMode = "pinch";
+        touchPinchDistance = Math.max(1, touchDistance(a, b));
+        touchStartZoom = targetZoom;
+        touchStartOffsetX = targetOffsetX;
+        touchStartOffsetY = targetOffsetY;
+
+        touchPinchCenterPdfX =
+            (center.x - touchStartOffsetX) / Math.max(touchStartZoom, 0.001);
+        touchPinchCenterPdfY =
+            (center.y - touchStartOffsetY) / Math.max(touchStartZoom, 0.001);
+    }
+
+    viewer.addEventListener("touchstart", function(e) {
+        if (!pdfDocument) return;
+        if (e.target.closest?.(".mobile-toolbar")) return;
+
+        /* Всегда отключаем браузерные жесты внутри области PDF. */
+        e.preventDefault();
+
+        if (e.touches.length >= 2) {
+            startPinch(e.touches);
+            return;
+        }
+
+        if (e.touches.length === 1) {
+            startOneFinger(e.touches[0]);
+        }
+    }, { passive: false });
+
+    viewer.addEventListener("touchmove", function(e) {
+        if (!pdfDocument) return;
+        if (e.target.closest?.(".mobile-toolbar")) return;
+
+        e.preventDefault();
+
+        /* Два пальца: zoom вокруг точки между пальцами. */
+        if (e.touches.length >= 2) {
+            if (touchMode !== "pinch") {
+                startPinch(e.touches);
+            }
+
+            const a = e.touches[0];
+            const b = e.touches[1];
+            const rect = viewer.getBoundingClientRect();
+            const center = touchCenter(a, b, rect);
+            const distance = Math.max(1, touchDistance(a, b));
+
+            targetZoom = Math.max(
+                MIN_ZOOM,
+                Math.min(
+                    MAX_ZOOM,
+                    touchStartZoom * distance / touchPinchDistance
+                )
+            );
+
+            targetOffsetX =
+                center.x - touchPinchCenterPdfX * targetZoom;
+            targetOffsetY =
+                center.y - touchPinchCenterPdfY * targetZoom;
+
+            startAnimation();
+
+            clearTimeout(renderTimer);
+            renderTimer = setTimeout(renderHighQualityPage, 180);
+            return;
+        }
+
+        /* Один палец: обычный pan. Никакого перелистывания. */
+        if (e.touches.length === 1) {
+            const t = e.touches[0];
+
+            if (touchMode !== "pan") {
+                startOneFinger(t);
+            }
+
+            const dx = t.clientX - touchStartX;
+            const dy = t.clientY - touchStartY;
+
+            /* Панорамирование разрешено только при увеличении PDF. */
+            if (targetZoom > 1.001) {
+                targetOffsetX = touchStartOffsetX + dx;
+                targetOffsetY = touchStartOffsetY + dy;
+                startAnimation();
+            }
+
+            touchLastX = t.clientX;
+            touchLastY = t.clientY;
+        }
+    }, { passive: false });
+
+    viewer.addEventListener("touchend", function(e) {
+        if (!pdfDocument) return;
+        e.preventDefault();
+
+        /* Если после pinch остался один палец — начинаем новый pan
+           именно с его текущего положения, без скачка страницы. */
+        if (e.touches.length === 1) {
+            startOneFinger(e.touches[0]);
+            return;
+        }
+
+        if (e.touches.length === 0) {
+            touchMode = "none";
+            viewer.classList.remove("dragging");
+        }
+    }, { passive: false });
+
+    viewer.addEventListener("touchcancel", function() {
+        touchMode = "none";
+        viewer.classList.remove("dragging");
+    }, { passive: false });
+
     /* =====================================
        ВЫБРАТЬ ДРУГОЙ PDF
        ===================================== */
@@ -4798,6 +4924,7 @@
 
             if (app) {
                 app.classList.add("initial");
+                app.classList.remove("mobile-menu-open");
             }
 
             uploadBlock.style.display =
